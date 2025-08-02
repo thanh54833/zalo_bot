@@ -70,8 +70,16 @@ async def zalo_webhook(request: Request, mac: str = Header(None)):
 @app.get("/zalo-platform-site-verification.html", response_class=fastapi.responses.PlainTextResponse)
 async def zalo_domain_verification():
     """
-    Handle Zalo domain ownership verification
+    Handle Zalo domain ownership verification via HTML file
     This endpoint returns the verification code provided by Zalo
+    """
+    return f"zalo-platform-site-verification={ZALO_VERIFICATION_CODE}"
+
+@app.get("/.well-known/zalo-platform-site-verification.txt", response_class=fastapi.responses.PlainTextResponse)
+async def zalo_txt_verification():
+    """
+    Handle Zalo domain ownership verification via TXT file
+    This is an alternative verification method
     """
     return f"zalo-platform-site-verification={ZALO_VERIFICATION_CODE}"
 
