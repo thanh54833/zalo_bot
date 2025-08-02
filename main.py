@@ -16,13 +16,8 @@ OA_SECRET_KEY = "your_oa_secret_key"  # Get this from Zalo Developer Portal
 # Create static directory if it doesn't exist
 os.makedirs("static", exist_ok=True)
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Add route for Zalo verification file
-@app.get("/zalo_verifierMUxX39taK3XPvj4vaz5RCrFZr2-_bGDmDZGn.html")
-async def zalo_verification_file():
-    return fastapi.responses.FileResponse("static/zalo_verifierMUxX39taK3XPvj4vaz5RCrFZr2-_bGDmDZGn.html")
+# Mount static files at root path
+app.mount("/", StaticFiles(directory="static"), name="static")
 
 class ZaloMessage(BaseModel):
     app_id: str
