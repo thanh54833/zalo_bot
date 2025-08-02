@@ -1,16 +1,24 @@
+import fastapi.responses
 from fastapi import FastAPI, Request, HTTPException, Header
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import hmac
 import hashlib
 import json
+import os
 from typing import Optional
-import fastapi.responses
 
 app = FastAPI()
 
 # Configuration - These should be loaded from environment variables in production
 OA_SECRET_KEY = "your_oa_secret_key"  # Get this from Zalo Developer Portal
 ZALO_VERIFICATION_CODE = "MUxX39taK3XPvj4vaz5RCrFZr2-_bGDmDZGn"
+
+# Create static directory if it doesn't exist
+os.makedirs("static", exist_ok=True)
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 class ZaloMessage(BaseModel):
     app_id: str
@@ -67,6 +75,22 @@ async def zalo_webhook(request: Request, mac: str = Header(None)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.get("/.well-known/zalo-site-verification.txt", response_class=fastapi.responses.PlainTextResponse)
+async def zalo_txt_verification():
+    """
+    Handle Zalo domain ownership verification via TXT file in .well-known directory
+    This is the recommended verification method when DNS TXT records can't be added
+    """
+    return ZALO_VERIFICATION_CODE
+
+@app.get("/zalo-site-verification.txt", response_class=fastapi.responses.PlainTextResponse)
+async def zalo_txt_verification_root():
+    """
+    Handle Zalo domain ownership verification via TXT file in root directory
+    Alternative location for the verification file
+    """
+    return ZALO_VERIFICATION_CODE
+
 @app.get("/zalo-platform-site-verification.html", response_class=fastapi.responses.PlainTextResponse)
 async def zalo_domain_verification():
     """
@@ -75,13 +99,30 @@ async def zalo_domain_verification():
     """
     return f"zalo-platform-site-verification={ZALO_VERIFICATION_CODE}"
 
-@app.get("/.well-known/zalo-platform-site-verification.txt", response_class=fastapi.responses.PlainTextResponse)
-async def zalo_txt_verification():
+@app.get("/zalo-{code}.html", response_class=fastapi.responses.HTMLResponse)
+async def zalo_html_verification(code: str):
     """
-    Handle Zalo domain ownership verification via TXT file
-    This is an alternative verification method
+    Handle Zalo domain ownership verification via dynamic HTML file
+    This endpoint returns an HTML page with the verification code
     """
-    return f"zalo-platform-site-verification={ZALO_VERIFICATION_CODE}"
+    verification_code = ZALO_VERIFICATION_CODE.split("=")[-1] if "=" in ZALO_VERIFICATION_CODE else ZALO_VERIFICATION_CODE
+    
+    if code != verification_code:
+        raise HTTPException(status_code=404, detail="Not found")
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Zalo Domain Verification</title>
+        <meta name="zalo-platform-site-verification" content="{verification_code}">
+    </head>
+    <body>
+        <h1>Zalo Domain Verification</h1>
+        <p>{ZALO_VERIFICATION_CODE}</p>
+    </body>
+    </html>
+    """
 
 def verify_signature(body: str, mac: str) -> bool:
     """
