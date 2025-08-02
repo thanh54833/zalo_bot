@@ -1,3 +1,6 @@
 fastapi==0.100.0
 hypercorn==0.14.4
 uvicorn
+python-multipart  # For handling form data
+pydantic  # For data validation
+python-jose[cryptography]  # For handling JWT tokens
