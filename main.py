@@ -4,11 +4,13 @@ import hmac
 import hashlib
 import json
 from typing import Optional
+import fastapi.responses
 
 app = FastAPI()
 
 # Configuration - These should be loaded from environment variables in production
 OA_SECRET_KEY = "your_oa_secret_key"  # Get this from Zalo Developer Portal
+ZALO_VERIFICATION_CODE = "MUxX39taK3XPvj4vaz5RCrFZr2-_bGDmDZGn"
 
 class ZaloMessage(BaseModel):
     app_id: str
@@ -21,14 +23,6 @@ class ZaloMessage(BaseModel):
 @app.get("/")
 async def root():
     return {"greeting": "Hello, World!", "message": "Welcome to FastAPI!"}
-
-@app.get("/.well-known/zalo-platform-site-verification.txt")
-async def zalo_domain_verification():
-    """
-    Serve the Zalo domain verification TXT record
-    This endpoint is used to verify domain ownership for Zalo Platform
-    """
-    return "zalo-platform-site-verification=MUxX39taK3XPvj4vaz5RCrFZr2-_bGDmDZGn"
 
 @app.get("/webhook")
 async def verify_webhook(mac: str = Header(None)):
@@ -72,6 +66,14 @@ async def zalo_webhook(request: Request, mac: str = Header(None)):
         
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/zalo-platform-site-verification.html", response_class=fastapi.responses.PlainTextResponse)
+async def zalo_domain_verification():
+    """
+    Handle Zalo domain ownership verification
+    This endpoint returns the verification code provided by Zalo
+    """
+    return f"zalo-platform-site-verification={ZALO_VERIFICATION_CODE}"
 
 def verify_signature(body: str, mac: str) -> bool:
     """
