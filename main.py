@@ -22,6 +22,14 @@ class ZaloMessage(BaseModel):
 async def root():
     return {"greeting": "Hello, World!", "message": "Welcome to FastAPI!"}
 
+@app.get("/.well-known/zalo-platform-site-verification.txt")
+async def zalo_domain_verification():
+    """
+    Serve the Zalo domain verification TXT record
+    This endpoint is used to verify domain ownership for Zalo Platform
+    """
+    return "zalo-platform-site-verification=MUxX39taK3XPvj4vaz5RCrFZr2-_bGDmDZGn"
+
 @app.get("/webhook")
 async def verify_webhook(mac: str = Header(None)):
     """
