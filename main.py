@@ -11,7 +11,7 @@ from typing import Optional
 app = FastAPI()
 
 # Configuration - These should be loaded from environment variables in production
-OA_SECRET_KEY = "your_oa_secret_key"  # Get this from Zalo Developer Portal
+OA_SECRET_KEY = "NrGu0gUeiEnRrajtwPmF"  # Get this from Zalo Developer Portal
 
 # Create static directory if it doesn't exist
 os.makedirs("static", exist_ok=True)
@@ -44,6 +44,9 @@ async def zalo_webhook(request: Request, mac: str = Header(None)):
     # Get raw request body
     body = await request.body()
     body_str = body.decode()
+
+    print("body -> ", body)
+    print("Received webhook event -> ", verify_signature(body, mac))
     
     # During initial setup, Zalo might send verification requests without proper signatures
     # Skip signature verification for now
