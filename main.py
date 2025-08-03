@@ -1,14 +1,27 @@
 import fastapi.responses
-from fastapi import FastAPI, Request, HTTPException, Header
+from fastapi import FastAPI, Request, HTTPException, Header, Body, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import hmac
 import hashlib
 import json
 import os
-from typing import Optional
+from typing import Optional, Dict, Any, List
+
+# Import our zalo router
+from routers import zalo_router
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 # Configuration - These should be loaded from environment variables in production
 OA_SECRET_KEY = "NrGu0gUeiEnRrajtwPmF"  # Get this from Zalo Developer Portal
@@ -23,6 +36,9 @@ class ZaloMessage(BaseModel):
     event_name: str
     message: Optional[dict]
     timestamp: str
+
+# Include our zalo router
+app.include_router(zalo_router.router)
 
 @app.get("/")
 async def root():

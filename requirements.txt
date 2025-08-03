@@ -4,3 +4,7 @@ uvicorn
 python-multipart  # For handling form data
 pydantic  # For data validation
 python-jose[cryptography]  # For handling JWT tokens
+zlapi  # Zalo API unofficial library
+python-dotenv  # For environment variables
+requests  # For webhook forwarding
+load_dotenv
