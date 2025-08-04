@@ -21,6 +21,7 @@ class ZaloBot(ZaloAPI):
         #print(f"Received message: {message} from {author_id} in thread {thread_id} of type {thread_type}")
 
         print("Message object:", message_object)
+        # message_object.uidFrom !='0' là tin nhắn user gửi tới.
         if message_object.uidFrom !='0' :
             try:
                 self.last_activity = datetime.now()
