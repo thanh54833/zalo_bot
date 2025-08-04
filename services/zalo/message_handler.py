@@ -123,7 +123,9 @@ class ZaloMessageHandler:
             if response:
                 tt = ThreadType.USER if thread_type.upper() == "USER" else ThreadType.GROUP
                 message = Message(text=response)
-                self.bot.send(message, thread_id, tt)
+
+                print("tt:",tt," thread_id:", thread_id, "message:", message)
+                # self.bot.send(message, thread_id, ThreadType.USER)
                 logger.info(f"Sent response: {response}")
                 
         except Exception as e:
