@@ -7,11 +7,12 @@ from pydantic import BaseModel
 from zlapi import ZaloAPI
 from zlapi.models import Message, ThreadType
 
+from services.advisor import agent_advisor
+
 logger = logging.getLogger(__name__)
 
-# Default response message
-DEFAULT_RESPONSE = "Xin chào! bạn có thể liên hệ đến sdt: 0358380646 để nhận được trợ giúp"
-
+# Fallback response message
+FALLBACK_RESPONSE = "Xin chào! Bạn có thể liên hệ đến sđt: 0358380646 để nhận được trợ giúp"
 
 class MessageData(BaseModel):
     """Data model for Zalo messages"""
@@ -22,10 +23,8 @@ class MessageData(BaseModel):
     thread_type: str
     timestamp: datetime
 
-
 class BaseCommand:
     """Base class for command handlers"""
-
     def __init__(self, bot_instance: ZaloAPI):
         self.bot = bot_instance
 
@@ -33,10 +32,8 @@ class BaseCommand:
         """Execute the command"""
         raise NotImplementedError
 
-
 class HelpCommand(BaseCommand):
     """Handler for !help command"""
-
     def execute(self, message_data: MessageData, args: List[str]) -> str:
         commands = {
             "help": "Show this help message",
@@ -46,34 +43,26 @@ class HelpCommand(BaseCommand):
         help_text = "Available commands:\n"
         for cmd, desc in commands.items():
             help_text += f"!{cmd}: {desc}\n"
-        help_text += f"\n{DEFAULT_RESPONSE}"
         return help_text
-
 
 class EchoCommand(BaseCommand):
     """Handler for !echo command"""
-
     def execute(self, message_data: MessageData, args: List[str]) -> str:
-        echo_response = " ".join(args) if args else "Echo what?"
-        return f"{echo_response}\n\n{DEFAULT_RESPONSE}"
-
+        return " ".join(args) if args else "Echo what?"
 
 class InfoCommand(BaseCommand):
     """Handler for !info command"""
-
     def execute(self, message_data: MessageData, args: List[str]) -> str:
-        info = json.dumps({
+        return json.dumps({
             "thread_id": message_data.thread_id,
             "thread_type": message_data.thread_type,
             "author_id": message_data.author_id,
             "timestamp": message_data.timestamp.isoformat()
         }, indent=2)
-        return f"{info}\n\n{DEFAULT_RESPONSE}"
-
 
 class ZaloMessageHandler:
     """Handles processing and responding to incoming Zalo messages"""
-
+    
     def __init__(self, bot_instance: ZaloAPI):
         self.bot = bot_instance
         # Initialize command handlers
@@ -82,50 +71,69 @@ class ZaloMessageHandler:
             "echo": EchoCommand(bot_instance),
             "info": InfoCommand(bot_instance),
         }
-
+        
     def process_message(self, message_data: MessageData) -> Optional[str]:
         """Process incoming message and return response if needed"""
         try:
             logger.info(f"Processing message: {message_data.message} from {message_data.author_id}")
-
+            
             if message_data.message.startswith("!"):
                 return self.handle_command(message_data)
-
+                
             return self.handle_normal_message(message_data)
-
+            
         except Exception as e:
             logger.error(f"Error processing message: {e}")
-            return DEFAULT_RESPONSE  # Return default response even on error
-
+            return FALLBACK_RESPONSE
+            
     def handle_command(self, message_data: MessageData) -> Optional[str]:
         """Handle command messages (starting with !)"""
         try:
             parts = message_data.message[1:].split()
             if not parts:
-                return DEFAULT_RESPONSE
-
+                return "Please specify a command after '!'."
+                
             command = parts[0].lower()
             args = parts[1:]
-
+            
             if command in self.commands:
                 return self.commands[command].execute(message_data, args)
-
-            return f"Unknown command: {command}. Type !help for available commands.\n\n{DEFAULT_RESPONSE}"
-
+            
+            return f"Unknown command: {command}. Type !help for available commands."
+            
         except Exception as e:
             logger.error(f"Error handling command: {e}")
-            return DEFAULT_RESPONSE
-
+            return FALLBACK_RESPONSE
+            
     def handle_normal_message(self, message_data: MessageData) -> str:
-        """Handle non-command messages"""
+        """Handle non-command messages by invoking the agent."""
         try:
-            logger.info(f"Received normal message: {message_data.message}")
-            # Always return the default response
-            return DEFAULT_RESPONSE
+            logger.info(f"Invoking agent_advisor for message: {message_data.message}")
+
+            # Prepare the input for the agent
+            agent_input = {
+                "messages": [{"role": "user", "content": message_data.message}]
+            }
+
+            # Invoke the agent
+            response = agent_advisor.invoke(agent_input)
+
+            # Extract the agent's final response
+            agent_response = ""
+            if response and 'messages' in response and response['messages']:
+                last_message = response['messages'][-1]
+                if hasattr(last_message, 'content'):
+                    agent_response = last_message.content
+
+            if not agent_response:
+                logger.warning("Agent returned an empty response.")
+                return FALLBACK_RESPONSE
+
+            return agent_response
 
         except Exception as e:
-            logger.error(f"Error handling normal message: {e}")
-            return DEFAULT_RESPONSE
+            logger.error(f"Error invoking agent_advisor: {e}")
+            return FALLBACK_RESPONSE
 
     def send_response(self, response: str, thread_id: str, thread_type: str) -> None:
         """Send response message back to Zalo"""
@@ -133,18 +141,16 @@ class ZaloMessageHandler:
             if response:
                 tt = ThreadType.USER if thread_type.upper() == "USER" else ThreadType.GROUP
                 message = Message(text=response)
-
                 print("tt:", tt, " thread_id:", thread_id, "message:", message)
-                self.bot.send(message, thread_id, ThreadType.USER)
+                self.bot.send(message, thread_id, tt)
                 logger.info(f"Sent response: {response}")
-
+                
         except Exception as e:
             logger.error(f"Error sending response: {e}")
-            # Try to send default response if regular response fails
             try:
                 tt = ThreadType.USER if thread_type.upper() == "USER" else ThreadType.GROUP
-                message = Message(text=DEFAULT_RESPONSE)
+                message = Message(text=FALLBACK_RESPONSE)
                 self.bot.send(message, thread_id, tt)
-                logger.info("Sent default response as fallback")
+                logger.info("Sent fallback response")
             except Exception as e2:
-                logger.error(f"Error sending default response: {e2}")
+                logger.error(f"Error sending fallback response: {e2}")
