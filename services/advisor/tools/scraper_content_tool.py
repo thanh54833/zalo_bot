@@ -95,11 +95,13 @@ class ScraperContentTool(BaseTool):
 if __name__ == "__main__":
     import json
 
+
     async def test_scraper():
         """Function to test the ScraperContentTool with various URLs."""
         tool = ScraperContentTool()
         test_urls = [
-            "https://concung.com/ta-takato/so-sanh-cac-loai-ta-quan-cho-tre-loai-nao-tot-nhat-bv676.html?srsltid=AfmBOopKMQzrIkO-h9-YCTKQSoRJJPdWKvKtHq9q0IsD0Zo6o6fG2qkO",  # Good URL
+            "https://concung.com/ta-takato/so-sanh-cac-loai-ta-quan-cho-tre-loai-nao-tot-nhat-bv676.html?srsltid=AfmBOopKMQzrIkO-h9-YCTKQSoRJJPdWKvKtHq9q0IsD0Zo6o6fG2qkO",
+            # Good URL
             "https://concung.com/ta-takato/so-sanh-cac-loai-ta-quan-cho-tre-loai-nao-tot-nhat-bv676.html?srsltid=AfmBOopKMQzrIkO-h9-YCTKQSoRJJPdWKvKtHq9q0IsD0Zo6o6fG2qkO"
         ]
 
@@ -109,5 +111,6 @@ if __name__ == "__main__":
 
         print("\n--- Results ---")
         print(json.dumps(results, indent=2, ensure_ascii=False))
+
 
     asyncio.run(test_scraper())
