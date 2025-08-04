@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class AgentAdvisor:
     """Simple class to manage a ReAct agent"""
-    
+
     def __init__(self):
         """
         Initialize the model with default values and build the agent.
@@ -22,18 +22,18 @@ class AgentAdvisor:
             temperature=1.0,
             max_tokens=1024,
         )
-        
+
         # Initialize empty tools list
         self.tools = []
-        
+
         # Get the default prompt
         self.prompt = SYSTEM_PROMPT
-        
+
         # Build the agent
         self.agent = self.build()
-        
+
         logger.info("Initialized AgentAdvisor with default configuration")
-        
+
     def build(self):
         """Build the ReAct agent with current configuration"""
         agent = create_react_agent(
