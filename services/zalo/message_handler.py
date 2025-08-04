@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 # Fallback response message
 FALLBACK_RESPONSE = "Xin chào! Bạn có thể liên hệ đến sđt: 0358380646 để nhận được trợ giúp"
 
+
 class MessageData(BaseModel):
     """Data model for Zalo messages"""
     mid: str
@@ -23,8 +24,10 @@ class MessageData(BaseModel):
     thread_type: str
     timestamp: datetime
 
+
 class BaseCommand:
     """Base class for command handlers"""
+
     def __init__(self, bot_instance: ZaloAPI):
         self.bot = bot_instance
 
@@ -32,8 +35,10 @@ class BaseCommand:
         """Execute the command"""
         raise NotImplementedError
 
+
 class HelpCommand(BaseCommand):
     """Handler for !help command"""
+
     def execute(self, message_data: MessageData, args: List[str]) -> str:
         commands = {
             "help": "Show this help message",
@@ -45,13 +50,17 @@ class HelpCommand(BaseCommand):
             help_text += f"!{cmd}: {desc}\n"
         return help_text
 
+
 class EchoCommand(BaseCommand):
     """Handler for !echo command"""
+
     def execute(self, message_data: MessageData, args: List[str]) -> str:
         return " ".join(args) if args else "Echo what?"
 
+
 class InfoCommand(BaseCommand):
     """Handler for !info command"""
+
     def execute(self, message_data: MessageData, args: List[str]) -> str:
         return json.dumps({
             "thread_id": message_data.thread_id,
@@ -60,9 +69,10 @@ class InfoCommand(BaseCommand):
             "timestamp": message_data.timestamp.isoformat()
         }, indent=2)
 
+
 class ZaloMessageHandler:
     """Handles processing and responding to incoming Zalo messages"""
-    
+
     def __init__(self, bot_instance: ZaloAPI):
         self.bot = bot_instance
         # Initialize command handlers
@@ -71,40 +81,40 @@ class ZaloMessageHandler:
             "echo": EchoCommand(bot_instance),
             "info": InfoCommand(bot_instance),
         }
-        
+
     def process_message(self, message_data: MessageData) -> Optional[str]:
         """Process incoming message and return response if needed"""
         try:
             logger.info(f"Processing message: {message_data.message} from {message_data.author_id}")
-            
+
             if message_data.message.startswith("!"):
                 return self.handle_command(message_data)
-                
+
             return self.handle_normal_message(message_data)
-            
+
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             return FALLBACK_RESPONSE
-            
+
     def handle_command(self, message_data: MessageData) -> Optional[str]:
         """Handle command messages (starting with !)"""
         try:
             parts = message_data.message[1:].split()
             if not parts:
                 return "Please specify a command after '!'."
-                
+
             command = parts[0].lower()
             args = parts[1:]
-            
+
             if command in self.commands:
                 return self.commands[command].execute(message_data, args)
-            
+
             return f"Unknown command: {command}. Type !help for available commands."
-            
+
         except Exception as e:
             logger.error(f"Error handling command: {e}")
             return FALLBACK_RESPONSE
-            
+
     def handle_normal_message(self, message_data: MessageData) -> str:
         """Handle non-command messages by invoking the agent."""
         try:
@@ -144,13 +154,12 @@ class ZaloMessageHandler:
                 message = Message(text=response)
                 self.bot.send(message, thread_id, ThreadType.USER)
                 logger.info(f"Sent response: {response}")
-                
+
         except Exception as e:
             logger.error(f"Error sending response: {e}")
             try:
-                tt = ThreadType.USER if thread_type.upper() == "USER" else ThreadType.GROUP
                 message = Message(text=FALLBACK_RESPONSE)
-                self.bot.send(message, thread_id, tt)
+                self.bot.send(message, thread_id, ThreadType.USER)
                 logger.info("Sent fallback response")
             except Exception as e2:
                 logger.error(f"Error sending fallback response: {e2}")
