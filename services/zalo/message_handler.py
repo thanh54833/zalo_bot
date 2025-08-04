@@ -125,7 +125,7 @@ class ZaloMessageHandler:
                 message = Message(text=response)
 
                 print("tt:",tt," thread_id:", thread_id, "message:", message)
-                # self.bot.send(message, thread_id, ThreadType.USER)
+                self.bot.send(message, thread_id, ThreadType.USER)
                 logger.info(f"Sent response: {response}")
                 
         except Exception as e:

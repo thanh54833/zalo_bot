@@ -17,30 +17,35 @@ class ZaloBot(ZaloAPI):
 
     def onMessage(self, mid, author_id, message, message_object, thread_id, thread_type):
         """Handles incoming messages and processes them through MessageHandler"""
-        try:
-            self.last_activity = datetime.now()
 
-            # Create message data object
-            message_data = MessageData(
-                mid=str(mid),
-                author_id=str(author_id),
-                message=str(message) if message else "",
-                thread_id=str(thread_id),
-                thread_type=str(thread_type),
-                timestamp=datetime.now()
-            )
-            
-            # Process message synchronously since we're in a callback
-            response = self.message_handler.process_message(message_data)
-            if response:
-                self.message_handler.send_response(
-                    response,
-                    message_data.thread_id,
-                    message_data.thread_type
+        #print(f"Received message: {message} from {author_id} in thread {thread_id} of type {thread_type}")
+
+        print("Message object:", message_object)
+        if message_object.uidFrom !='0' :
+            try:
+                self.last_activity = datetime.now()
+
+                # Create message data object
+                message_data = MessageData(
+                    mid=str(mid),
+                    author_id=str(author_id),
+                    message=str(message) if message else "",
+                    thread_id=str(thread_id),
+                    thread_type=str(thread_type),
+                    timestamp=datetime.now()
                 )
-            
-        except Exception as e:
-            logger.error(f"Error in onMessage: {e}")
+                
+                # Process message synchronously since we're in a callback
+                response = self.message_handler.process_message(message_data)
+                if response:
+                    self.message_handler.send_response(
+                        response,
+                        message_data.thread_id,
+                        message_data.thread_type
+                    )
+                
+            except Exception as e:
+                logger.error(f"Error in onMessage: {e}")
 
     def onEvent(self, event_data, event_type):
         """Handle other Zalo events"""
