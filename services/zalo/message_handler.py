@@ -128,8 +128,6 @@ class ZaloMessageHandler:
             # Invoke the agent
             response = agent_advisor.invoke(agent_input)
 
-            print("response --> ", response)
-
             # Extract the agent's final response
             agent_response = ""
             if response and 'messages' in response and response['messages']:
