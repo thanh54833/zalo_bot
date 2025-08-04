@@ -25,8 +25,6 @@ class GoogleSearchTool(BaseTool):
     name: str = "google_search"
     description: str = (
         "A search engine to find information on the web. "
-        "It automatically searches both the general web and the concung.com website in parallel. "
-        "Use this as the primary tool to understand a user's general query in the context of mother and baby products."
     )
     args_schema: Type[BaseModel] = GoogleSearchInput
 
@@ -57,25 +55,17 @@ class GoogleSearchTool(BaseTool):
         Runs a general web search and a concung.com-specific search in parallel.
         Returns a dictionary with prioritized results from concung.com.
         """
-        concung_query = f"{query} site:concung.com"
-        normal_query = f"{query} -site:avakids.com"
+        normal_query = f"{query}"
 
         # Run both searches in parallel using the synchronous _search_sync method in separate threads.
         loop = asyncio.get_running_loop()
-        task_concung = loop.run_in_executor(None, self._search_sync, concung_query, 5, lang)
         task_normal = loop.run_in_executor(None, self._search_sync, normal_query, num_results, lang)
 
-        results_concung, results_normal = await asyncio.gather(
-            task_concung, task_normal
+        results_normal = await asyncio.gather(
+            task_normal
         )
 
-        logger.info(
-            f"Google Search: Found {len(results_concung)} results from concung.com and {len(results_normal)} from the web for query '{query}'.")
-
-        return {
-            "concung_results": results_concung,
-            "web_results": results_normal,
-        }
+        return results_normal
 
     def _run(self, query: str, num_results: int = 10, lang: str = "vi") -> Dict[str, Union[List[SearchItem], str]]:
         """Synchronous wrapper for the async run method."""
