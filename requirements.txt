@@ -8,3 +8,4 @@ zlapi  # Zalo API unofficial library
 python-dotenv  # For environment variables
 requests  # For webhook forwarding
 load_dotenv
+httpx
