@@ -1,5 +1,4 @@
 import logging
-import asyncio
 from datetime import datetime
 from typing import Optional
 
@@ -31,14 +30,14 @@ class ZaloBot(ZaloAPI):
                 timestamp=datetime.now()
             )
             
-            # Process message and get response
-            response = asyncio.run(self.message_handler.process_message(message_data))
+            # Process message synchronously since we're in a callback
+            response = self.message_handler.process_message(message_data)
             if response:
-                asyncio.run(self.message_handler.send_response(
+                self.message_handler.send_response(
                     response,
                     message_data.thread_id,
                     message_data.thread_type
-                ))
+                )
             
         except Exception as e:
             logger.error(f"Error in onMessage: {e}")
@@ -46,4 +45,4 @@ class ZaloBot(ZaloAPI):
     def onEvent(self, event_data, event_type):
         """Handle other Zalo events"""
         logger.info(f"Received event type: {event_type}")
-        # Add event handling logic here if needed 
+        # Add event handling logic here if needed
