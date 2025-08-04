@@ -24,7 +24,7 @@ class AgentAdvisor:
         """
         # Initialize LangSmith tracer if configured
         self.callbacks = []
-        if is_langsmith_configured():
+        if is_langsmith_configured:
             try:
                 self.tracer = LangChainTracer(project_name=LANGCHAIN_PROJECT)
                 self.callbacks.append(self.tracer)
@@ -83,7 +83,7 @@ class AgentAdvisor:
                 input_data = {"messages": messages}
             
             # Add run metadata if LangSmith is configured
-            if is_langsmith_configured():
+            if is_langsmith_configured:
                 metadata = {
                     "source": "zalo_bot",
                     "conversation_id": str(hash(str(messages))),
@@ -113,7 +113,7 @@ class AgentAdvisor:
         Args:
             eval_config: Optional evaluation configuration
         """
-        if not is_langsmith_configured():
+        if not is_langsmith_configured:
             logger.warning("LangSmith not configured. Cannot run evaluation.")
             return
             
