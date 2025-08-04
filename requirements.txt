@@ -7,3 +7,4 @@ pydantic
 langgraph
 langchain
 langchain-groq
+langsmith
