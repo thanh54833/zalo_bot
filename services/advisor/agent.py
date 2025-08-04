@@ -38,7 +38,7 @@ class AgentAdvisor:
         # Initialize the LLM
         self.llm = ChatGroq(
             model="meta-llama/llama-4-scout-17b-16e-instruct",
-            temperature=1.0,
+            temperature=0.0,
             max_tokens=1024,
             callbacks=self.callbacks
         )
