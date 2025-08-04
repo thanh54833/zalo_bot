@@ -1,6 +1,7 @@
+import asyncio
 import logging
 from typing import Dict, List, Type, Union
-import asyncio
+
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
 
@@ -68,7 +69,8 @@ class GoogleSearchTool(BaseTool):
             task_concung, task_normal
         )
 
-        logger.info(f"Google Search: Found {len(results_concung)} results from concung.com and {len(results_normal)} from the web for query '{query}'.")
+        logger.info(
+            f"Google Search: Found {len(results_concung)} results from concung.com and {len(results_normal)} from the web for query '{query}'.")
 
         return {
             "concung_results": results_concung,
