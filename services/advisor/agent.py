@@ -1,22 +1,51 @@
-import os
+import logging
+
 from langchain_groq import ChatGroq
 from langgraph.prebuilt import create_react_agent
 
-# 1. Configure the LLM
-# Make sure to set the GROQ_API_KEY environment variable
-# export GROQ_API_KEY="your_api_key"
-llm = ChatGroq(
-    model="meta-llama/llama-4-scout-17b-16e-instruct",
-    temperature=1,
-    max_tokens=1024,
-)
+from services.advisor.prompts import SYSTEM_PROMPT
 
-# 2. Define tools for the agent (initially empty)
-tools = []
+# Configure logging
+logger = logging.getLogger(__name__)
 
-# 3. Create the ReAct agent
-agent_advisor = create_react_agent(
-    model=llm,
-    tools=tools,
-    prompt=""  # Empty prompt as requested
-) 
+
+class AgentAdvisor:
+    """Simple class to manage a ReAct agent"""
+
+    def __init__(self):
+        """
+        Initialize the model with default values and build the agent.
+        No input parameters required.
+        """
+        # Default configuration
+        self.prompt_type = "default"
+        self.tools = []
+
+        # Initialize the LLM
+        self.llm = ChatGroq(
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            temperature=1.0,
+            max_tokens=1024,
+        )
+
+        # Get the default prompt
+        self.prompt = SYSTEM_PROMPT
+
+        # Build the agent
+        self.agent = self.build()
+
+        logger.info(f"Initialized AgentAdvisor with default configuration")
+
+    def build(self):
+        """Build the ReAct agent with current configuration"""
+        agent = create_react_agent(
+            model=self.llm,
+            tools=self.tools,
+            prompt=self.prompt
+        )
+        logger.info(f"Built agent with model {self.model_name}")
+        return agent
+
+
+# Create a default instance of AgentAdvisor
+agent_advisor = AgentAdvisor()
