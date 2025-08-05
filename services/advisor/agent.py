@@ -10,6 +10,8 @@ from langsmith import Client
 
 from services.advisor.prompts import SYSTEM_PROMPT
 from services.config import is_langsmith_configured, LANGCHAIN_PROJECT
+from services.advisor.tools.google_search_tool import GoogleSearchTool
+from services.advisor.tools.scraper_content_tool import ScraperContentTool
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -43,12 +45,16 @@ class AgentAdvisor:
             callbacks=self.callbacks
         )
 
-        # Initialize empty tools list
-        self.tools = []
+        # Initialize tools
+        self.tools = [
+            GoogleSearchTool(),
+            ScraperContentTool()
+        ]
+        logger.info(f"Initialized tools: {[tool.name for tool in self.tools]}")
 
         # Get the default prompt
         self.prompt = SYSTEM_PROMPT
-
+    
         # Build the agent
         self.agent = self.build()
 
