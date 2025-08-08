@@ -10,10 +10,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# --- Set Groq API Key ---
-# WARNING: Storing API keys directly in code is insecure.
-# It's recommended to use environment variables or a secret management system for production.
-os.environ['GROQ_API_KEY'] = ""
 
 # Import our zalo router
 from routers import zalo_router
