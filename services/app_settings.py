@@ -17,15 +17,18 @@ class ModelConfig(BaseSettings):
     max_tokens: int = 2048
 
 class AgentConfig(BaseSettings):
+    enabled: bool = True
     system_prompt: str = "You are a helpful Zalo assistant."
     tools: List[str] = Field(default_factory=list)
     model: ModelConfig = Field(default_factory=ModelConfig)
 
 
 class ZaloOAConfig(BaseSettings):
+    enabled: bool = True
     secret_key: str = "NrGu0gUeiEnRrajtwPmF"
 
 class ZaloPersonalConfig(BaseSettings):
+    enabled: bool = False
     phone: str = "0559362614"
     password: str = "Lumia520"
     imei: str = "2bd94c6b-f25c-418b-8e26-adb12c47086b-84fb6a68ab92a6d30981c69a1117885c"

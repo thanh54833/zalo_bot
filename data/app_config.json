@@ -1,5 +1,6 @@
 {
   "agent_config": {
+    "enabled": true,
     "system_prompt": "You are a helpful Zalo assistant.",
     "tools": [],
     "model": {
@@ -12,9 +13,11 @@
   },
   "zalo_config": {
     "oa": {
+      "enabled": true,
       "secret_key": "NrGu0gUeiEnRrajtwPmF"
     },
     "personal": {
+      "enabled": true,
       "phone": "0559362614",
       "password": "Lumia520",
       "imei": "2bd94c6b-f25c-418b-8e26-adb12c47086b-84fb6a68ab92a6d30981c69a1117885c",

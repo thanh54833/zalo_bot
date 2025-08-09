@@ -5,14 +5,14 @@ import os
 from typing import Optional
 
 import fastapi.responses
-from fastapi import FastAPI, Request, Header
+from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# --- New Config and Routers ---
+# --- Config and Routers ---
 from services.app_settings import config_manager
-from routers import config_router
+from routers import config_router, zalo_oa_router
 
 app = FastAPI()
 
@@ -52,6 +52,7 @@ class ZaloMessage(BaseModel):
 
 # Include routers
 app.include_router(config_router.router)
+app.include_router(zalo_oa_router.router)
 
 
 @app.get("/")
@@ -73,6 +74,10 @@ async def zalo_webhook(request: Request, mac: str = Header(None)):
     """
     Handle incoming webhook events from Zalo
     """
+    # Check if Zalo OA integration is enabled
+    if not config_manager.settings.zalo_config.oa.enabled:
+        raise HTTPException(status_code=503, detail="Zalo OA integration is disabled")
+        
     # Get raw request body
     body = await request.body()
 
@@ -80,18 +85,22 @@ async def zalo_webhook(request: Request, mac: str = Header(None)):
     if not verify_signature(body, mac):
         # In a real app, you might want to raise an HTTPException here
         print("Webhook signature verification failed!")
-        # For now, we'll still proceed for testing purposes
-        # return {"status": "error", "message": "Invalid signature"}
+        raise HTTPException(status_code=401, detail="Invalid signature")
     
-    print("body -> ", body.decode())
-    print("Received webhook event -> ", True)
-
     try:
-        # The actual logic for handling the event should be implemented here or in a dedicated service
-        # For now, just acknowledge receipt as per Zalo's requirement
-        return {"status": "success"}
+        # Parse the body as JSON
+        data = json.loads(body)
+        
+        # Forward the request to the Zalo OA router for processing
+        # We'll use the same structure as expected by the OA router
+        return await zalo_oa_router.zalo_oa_webhook(request)
+        
+    except json.JSONDecodeError:
+        print("Invalid JSON in webhook payload")
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
     except Exception as e:
         print(f"Error processing webhook: {e}")
+        # Return success to acknowledge receipt as per Zalo's requirement
         return {"status": "success"}
 
 
