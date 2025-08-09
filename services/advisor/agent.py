@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any
 import os
 import asyncio
 
@@ -50,6 +50,10 @@ class AgentAdvisor:
         """
         self.agent_id = agent_id
         self.is_enabled = False
+        self.is_initialized = False
+        self.llm = None
+        self.tools = []
+        self.agent = None
         
         # Initialize LangSmith tracer if configured
         self.callbacks = []
@@ -65,17 +69,12 @@ class AgentAdvisor:
             except Exception as e:
                 logger.error(f"Error initializing LangSmith: {e}")
         
-        # Load agent configuration or use defaults
+        # Load configuration
         self.load_config()
         
-        # Only build the agent if it's enabled
+        # Only initialize if enabled
         if self.is_enabled:
-            # Build the agent
-            self.agent = self.build()
-            logger.info(f"Initialized AgentAdvisor with configuration for agent: {agent_id}")
-        else:
-            logger.info(f"Agent {agent_id} is disabled. Not initializing.")
-            self.agent = None
+            self.initialize()
 
     def load_config(self):
         """Load configuration from the config manager"""
@@ -92,18 +91,44 @@ class AgentAdvisor:
         self.prompt = agent_config.system_prompt
         self.enabled_tools = agent_config.tools or ["google_search", "scraper_content"]
         
-        # Only initialize LLM and tools if agent is enabled
+        logger.info(f"Loaded configuration for agent {self.agent_id}. Enabled: {self.is_enabled}")
+        
+    def initialize(self):
+        """Initialize the agent with the current configuration"""
         if not self.is_enabled:
-            logger.info("Agent is disabled. Skipping LLM and tools initialization.")
-            return
+            logger.info("Agent is disabled. Not initializing.")
+            return False
             
-        # Initialize the LLM with config values
+        if self.is_initialized:
+            logger.info("Agent is already initialized.")
+            return True
+            
+        try:
+            # Initialize the LLM
+            self._initialize_llm()
+            
+            # Initialize tools
+            self._initialize_tools()
+            
+            # Build the agent
+            self.agent = self.build()
+            
+            self.is_initialized = True
+            logger.info(f"Agent {self.agent_id} initialized successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Error initializing agent: {e}")
+            self.is_initialized = False
+            return False
+    
+    def _initialize_llm(self):
+        """Initialize the LLM with current configuration"""
         try:
             # Check for API key - try environment first, then config
             api_key = os.environ.get("GROQ_API_KEY")
             if not api_key:
                 # If not in environment, use from config
-                api_key = agent_config.model.api_key
+                api_key = config_manager.settings.agent_config.model.api_key
                 
                 # Set it in environment for libraries that expect it there
                 if api_key:
@@ -126,6 +151,8 @@ class AgentAdvisor:
                     callbacks=self.callbacks
                 )
                 logger.info(f"Initialized ChatGroq with model {self.model_name}")
+            
+            return True
         except Exception as e:
             logger.error(f"Error initializing LLM: {e}")
             # Use our custom mock for testing
@@ -134,15 +161,18 @@ class AgentAdvisor:
                 temperature=self.temperature,
                 max_tokens=self.max_tokens
             )
-        
-        # Initialize tools based on configuration
+            return False
+    
+    def _initialize_tools(self):
+        """Initialize tools based on configuration"""
         self.tools = []
         if "google_search" in self.enabled_tools:
             self.tools.append(GoogleSearchTool())
         if "scraper_content" in self.enabled_tools:
             self.tools.append(ScraperContentTool())
             
-        logger.info(f"Loaded configuration: model={self.model_name}, tools={[tool.name for tool in self.tools]}")
+        logger.info(f"Initialized tools: {[tool.name for tool in self.tools]}")
+        return True
 
     def _save_config_sync(self):
         """Save the current configuration to the config manager (synchronous version)"""
@@ -178,6 +208,10 @@ class AgentAdvisor:
             logger.info("Agent is disabled. Not building.")
             return None
             
+        if not self.llm:
+            logger.error("LLM not initialized. Cannot build agent.")
+            return None
+            
         try:
             agent = create_react_agent(
                 model=self.llm,
@@ -192,6 +226,42 @@ class AgentAdvisor:
             def mock_agent(input_data):
                 return {"output": "This is a mock response for testing. Agent could not be built properly."}
             return mock_agent
+    
+    def shutdown(self):
+        """Shutdown the agent and clean up resources"""
+        if not self.is_initialized:
+            return
+            
+        try:
+            # Clean up LLM resources if any
+            if self.llm and hasattr(self.llm, 'client'):
+                try:
+                    # Try to close client connections
+                    if hasattr(self.llm.client, 'close'):
+                        self.llm.client.close()
+                    elif hasattr(self.llm.client, 'aclose'):
+                        # Create a task to close async client
+                        loop = asyncio.get_event_loop()
+                        if loop.is_running():
+                            asyncio.create_task(self.llm.client.aclose())
+                    
+                    logger.info("Closed LLM client connections")
+                except Exception as e:
+                    logger.error(f"Error closing LLM client: {e}")
+            
+            # Clean up tools
+            for tool in self.tools:
+                if hasattr(tool, 'close') and callable(tool.close):
+                    try:
+                        tool.close()
+                    except Exception as e:
+                        logger.error(f"Error closing tool {tool.name}: {e}")
+            
+            self.agent = None
+            self.is_initialized = False
+            logger.info(f"Agent {self.agent_id} shutdown complete")
+        except Exception as e:
+            logger.error(f"Error during agent shutdown: {e}")
 
     def invoke(self, messages: Union[List[Dict[str, str]], Dict[str, List[Dict[str, str]]]]):
         """
@@ -203,10 +273,15 @@ class AgentAdvisor:
         Returns:
             The agent's response
         """
-        # Check if agent is enabled
-        if not self.is_enabled or self.agent is None:
-            logger.warning("Agent is disabled or not initialized. Cannot process message.")
+        # Check if agent is enabled and initialized
+        if not self.is_enabled:
+            logger.warning("Agent is disabled. Cannot process message.")
             return {"output": "Agent is currently disabled."}
+            
+        if not self.is_initialized or self.agent is None:
+            logger.warning("Agent is not initialized. Attempting to initialize...")
+            if not self.initialize():
+                return {"output": "Agent could not be initialized. Please check the logs."}
             
         try:
             # Prepare input
@@ -288,22 +363,14 @@ class AgentAdvisor:
         if new_state:
             # Agent was enabled
             logger.info("Agent was enabled. Initializing...")
-            self.load_config()  # Reload config to get latest settings
-            self.agent = self.build()
+            self.initialize()
         else:
             # Agent was disabled
             logger.info("Agent was disabled. Cleaning up...")
-            self.agent = None
+            self.shutdown()
             
-            # Free up resources
-            if hasattr(self, 'llm') and hasattr(self.llm, 'client'):
-                try:
-                    await self.llm.client.aclose()
-                    logger.info("Closed LLM client connections")
-                except Exception as e:
-                    logger.error(f"Error closing LLM client: {e}")
-            
-            self.tools = []
+        # Save the new state to config
+        await self._save_config()
 
     async def update_config(self, config_data):
         """
@@ -333,40 +400,27 @@ class AgentAdvisor:
                 self.temperature = model_data["temperature"]
             if "max_tokens" in model_data:
                 self.max_tokens = model_data["max_tokens"]
-                
-            # Update the LLM if agent is enabled
-            if self.is_enabled:
-                try:
-                    api_key = os.environ.get("GROQ_API_KEY") or config_manager.settings.agent_config.model.api_key
-                    if api_key:
-                        self.llm = ChatGroq(
-                            api_key=api_key,  # Explicitly pass the API key
-                            model=self.model_name,
-                            temperature=self.temperature,
-                            max_tokens=self.max_tokens,
-                            callbacks=self.callbacks
-                        )
-                except Exception as e:
-                    logger.error(f"Error updating LLM: {e}")
-        
-        # Reload tools if agent is enabled
-        if self.is_enabled:
-            self.tools = []
-            if "google_search" in self.enabled_tools:
-                self.tools.append(GoogleSearchTool())
-            if "scraper_content" in self.enabled_tools:
-                self.tools.append(ScraperContentTool())
         
         # Save to config manager
         await self._save_config()
         
         # Rebuild the agent if enabled
-        if self.is_enabled:
-            self.agent = self.build()
+        if self.is_enabled and self.is_initialized:
+            # Shutdown first
+            self.shutdown()
+            # Then reinitialize
+            self.initialize()
             logger.info(f"Updated configuration for agent {self.agent_id}")
-        else:
-            self.agent = None
-            logger.info(f"Agent {self.agent_id} is now disabled")
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get the current status of the agent"""
+        return {
+            "enabled": self.is_enabled,
+            "initialized": self.is_initialized,
+            "has_agent": self.agent is not None,
+            "model": self.model_name,
+            "tools": self.enabled_tools
+        }
 
 
 # Create a default instance of AgentAdvisor
