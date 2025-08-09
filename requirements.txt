@@ -9,3 +9,4 @@ langchain
 langchain-groq
 langsmith
 googlesearch-python
+trafilatura
