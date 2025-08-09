@@ -1,5 +1,5 @@
 from .bot import ZaloBot
-from .message_handler import ZaloMessageHandler, MessageData, BaseCommand
+from .message_handler import ZaloMessageHandler, MessageData
 
 # Global bot instance
 _bot_instance = None
@@ -23,4 +23,4 @@ def set_bot_instance(bot: ZaloBot):
     global _bot_instance
     _bot_instance = bot
 
-__all__ = ['ZaloBot', 'ZaloMessageHandler', 'MessageData', 'BaseCommand', 'get_bot_instance', 'set_bot_instance'] 
+__all__ = ['ZaloBot', 'ZaloMessageHandler', 'MessageData', 'get_bot_instance', 'set_bot_instance'] 

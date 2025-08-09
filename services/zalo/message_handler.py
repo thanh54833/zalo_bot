@@ -25,94 +25,21 @@ class MessageData(BaseModel):
     timestamp: datetime
 
 
-class BaseCommand:
-    """Base class for command handlers"""
-
-    def __init__(self, bot_instance: ZaloAPI):
-        self.bot = bot_instance
-
-    def execute(self, message_data: MessageData, args: List[str]) -> str:
-        """Execute the command"""
-        raise NotImplementedError
-
-
-class HelpCommand(BaseCommand):
-    """Handler for !help command"""
-
-    def execute(self, message_data: MessageData, args: List[str]) -> str:
-        commands = {
-            "help": "Show this help message",
-            "echo": "Echo back your message",
-            "info": "Show information about the current chat"
-        }
-        help_text = "Available commands:\n"
-        for cmd, desc in commands.items():
-            help_text += f"!{cmd}: {desc}\n"
-        return help_text
-
-
-class EchoCommand(BaseCommand):
-    """Handler for !echo command"""
-
-    def execute(self, message_data: MessageData, args: List[str]) -> str:
-        return " ".join(args) if args else "Echo what?"
-
-
-class InfoCommand(BaseCommand):
-    """Handler for !info command"""
-
-    def execute(self, message_data: MessageData, args: List[str]) -> str:
-        return json.dumps({
-            "thread_id": message_data.thread_id,
-            "thread_type": message_data.thread_type,
-            "author_id": message_data.author_id,
-            "timestamp": message_data.timestamp.isoformat()
-        }, indent=2)
-
-
 class ZaloMessageHandler:
     """Handles processing and responding to incoming Zalo messages"""
 
     def __init__(self, bot_instance: ZaloAPI):
         self.bot = bot_instance
-        # Initialize command handlers
-        self.commands: Dict[str, BaseCommand] = {
-            "help": HelpCommand(bot_instance),
-            "echo": EchoCommand(bot_instance),
-            "info": InfoCommand(bot_instance),
-        }
 
     def process_message(self, message_data: MessageData) -> Optional[str]:
         """Process incoming message and return response if needed"""
         try:
             logger.info(f"Processing message: {message_data.message} from {message_data.author_id}")
 
-            if message_data.message.startswith("!"):
-                return self.handle_command(message_data)
-
             return self.handle_normal_message(message_data)
 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
-            return FALLBACK_RESPONSE
-
-    def handle_command(self, message_data: MessageData) -> Optional[str]:
-        """Handle command messages (starting with !)"""
-        try:
-            parts = message_data.message[1:].split()
-            if not parts:
-                return "Please specify a command after '!'."
-
-            command = parts[0].lower()
-            args = parts[1:]
-
-            if command in self.commands:
-                return self.commands[command].execute(message_data, args)
-
-            return f"Unknown command: {command}. Type !help for available commands."
-
-        except Exception as e:
-            logger.error(f"Error handling command: {e}")
             return FALLBACK_RESPONSE
 
     def handle_normal_message(self, message_data: MessageData) -> str:
@@ -129,11 +56,7 @@ class ZaloMessageHandler:
             response = agent_advisor.invoke(agent_input)
 
             # Extract the agent's final response
-            agent_response = ""
-            if response and 'messages' in response and response['messages']:
-                last_message = response['messages'][-1]
-                if hasattr(last_message, 'content'):
-                    agent_response = last_message.content
+            agent_response = response.get("output", "")
 
             if not agent_response:
                 logger.warning("Agent returned an empty response.")

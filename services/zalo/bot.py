@@ -62,17 +62,16 @@ class ZaloBot(ZaloAPI):
             
         if not self.is_connected:
             logger.warning("Cannot start listening: ZaloBot is not connected")
-            if not self.connect():
-                return False
+            return False
         
-        if self.listen_thread and self.listen_thread.is_alive():
+        if self.listen_thread and not self.listen_thread.done():
             logger.info("ZaloBot is already listening")
             return True
             
         try:
-            # Create and start the listening thread
-            self.listen_thread = threading.Thread(target=self.listen, daemon=True)
-            self.listen_thread.start()
+            # Create and start the listening thread as an asyncio task
+            loop = asyncio.get_running_loop()
+            self.listen_thread = loop.create_task(asyncio.to_thread(self.listen))
             logger.info("ZaloBot started listening in background thread")
             return True
         except Exception as e:
@@ -138,75 +137,12 @@ class ZaloBot(ZaloAPI):
         except Exception as e:
             logger.error(f"Error disconnecting ZaloBot: {e}")
             return False
-        
-    async def handle_enabled_state_change(self, new_state: bool):
-        """
-        Handle changes to the enabled state
-        
-        Args:
-            new_state: The new enabled state
-        """
-        if new_state == self.is_enabled:
-            # No change
-            return
-            
-        old_state = self.is_enabled
-        self.is_enabled = new_state
-        logger.info(f"ZaloBot enabled state changed: {old_state} -> {new_state}")
-        
-        if new_state:
-            # Bot was enabled
-            logger.info("ZaloBot was enabled. Connecting and starting...")
-            try:
-                # Connect to Zalo
-                if self.connect():
-                    # Start listening
-                    self.start_listening()
-            except Exception as e:
-                logger.error(f"Error enabling ZaloBot: {e}")
-        else:
-            # Bot was disabled
-            logger.info("ZaloBot was disabled. Disconnecting...")
-            try:
-                # Disconnect and clean up
-                self.disconnect()
-            except Exception as e:
-                logger.error(f"Error disabling ZaloBot: {e}")
-                
-    def reconnect(self):
-        """Reconnect to Zalo if needed"""
-        try:
-            # Get the latest credentials from config
-            cfg = config_manager.settings.zalo_config.personal
-            
-            # Update our credentials
-            self.phone = cfg.phone
-            self.password = cfg.password
-            self.imei = cfg.imei
-            if cfg.cookies:
-                self.cookies = cfg.cookies
-            
-            # Disconnect if already connected
-            if self.is_connected:
-                self.disconnect()
-                
-            # Connect with new credentials
-            success = self.connect()
-            
-            if success:
-                # Start listening again
-                self.start_listening()
-                
-            return success
-        except Exception as e:
-            logger.error(f"Error reconnecting ZaloBot: {e}")
-            return False
             
     def get_status(self) -> Dict[str, Any]:
         """Get the current status of the bot"""
         return {
             "enabled": self.is_enabled,
             "connected": self.is_connected,
-            "listening": self.listen_thread is not None and self.listen_thread.is_alive(),
+            "listening": self.listen_thread is not None and not self.listen_thread.done(),
             "last_activity": self.last_activity.isoformat() if hasattr(self, 'last_activity') else None
         }

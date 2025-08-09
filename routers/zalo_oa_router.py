@@ -2,6 +2,8 @@ import json
 import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
+import hashlib
+import hmac
 
 from fastapi import APIRouter, HTTPException, Request, Header, Depends
 import httpx
@@ -32,19 +34,23 @@ class ZaloOAHandler:
         self.base_url = "https://openapi.zalo.me/v2.0/oa"
         self.last_activity = datetime.now()
     
+    async def verify_signature(self, body: bytes, mac: str) -> bool:
+        """Verify the webhook signature using HMAC"""
+        if not mac:
+            return False
+
+        secret = config_manager.settings.zalo_config.oa.secret_key
+        computed_hash = hmac.new(
+            secret.encode(),
+            body,
+            hashlib.sha256
+        ).hexdigest()
+
+        return hmac.compare_digest(computed_hash, mac)
+
     async def is_enabled(self) -> bool:
         """Check if Zalo OA integration is enabled"""
         return config_manager.settings.zalo_config.oa.enabled
-    
-    async def get_access_token(self) -> str:
-        """Get Zalo OA access token (implement your token management here)"""
-        # This is a placeholder. In a real implementation, you would:
-        # 1. Check if you have a valid cached token
-        # 2. If not, use refresh token to get a new one
-        # 3. Store the new token and return it
-        
-        # For now, we'll just return a dummy value
-        return "YOUR_ZALO_OA_ACCESS_TOKEN"
     
     async def send_message(self, user_id: str, message: str) -> Dict[str, Any]:
         """Send a text message to a user via Zalo OA API"""
@@ -53,7 +59,7 @@ class ZaloOAHandler:
             return {"success": False, "message": "Zalo OA integration is disabled"}
             
         try:
-            access_token = await self.get_access_token()
+            access_token = config_manager.settings.zalo_config.oa.access_token
             
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -140,8 +146,17 @@ async def verify_oa_enabled():
         )
     return True
 
-@router.post("/webhook")
-async def zalo_oa_webhook(request: Request, enabled: bool = Depends(verify_oa_enabled)):
+
+async def verify_zalo_signature(request: Request, x_zet_mac: str = Header(None)):
+    """Dependency to verify Zalo webhook signature"""
+    body = await request.body()
+    if not await zalo_oa_handler.verify_signature(body, x_zet_mac):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+    return body
+
+
+@router.post("/webhook", dependencies=[Depends(verify_oa_enabled), Depends(verify_zalo_signature)])
+async def zalo_oa_webhook(request: Request):
     """
     Handle incoming webhook events from Zalo OA
     """

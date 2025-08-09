@@ -12,7 +12,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class ModelConfig(BaseSettings):
     provider: str = "groq"
     name: str = "llama3-8b-8192"
-    api_key: str = "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"
+    api_key: str = ""  # Should be set via env var GROQ_API_KEY or in app_config.json
     temperature: float = 0.7
     max_tokens: int = 2048
 
@@ -25,16 +25,14 @@ class AgentConfig(BaseSettings):
 
 class ZaloOAConfig(BaseSettings):
     enabled: bool = True
-    secret_key: str = "NrGu0gUeiEnRrajtwPmF"
+    secret_key: str = ""  # Should be set in app_config.json
 
 class ZaloPersonalConfig(BaseSettings):
     enabled: bool = False
-    phone: str = "0559362614"
-    password: str = "Lumia520"
-    imei: str = "2bd94c6b-f25c-418b-8e26-adb12c47086b-84fb6a68ab92a6d30981c69a1117885c"
-    cookies: Optional[Dict[str, str]] = Field(default_factory=lambda: {
-        'zpw_sek': 'PHX8.442114449.a0.ztLU0MccDF3uXsxgIAOqy1A4KPjBd1Q40v4VY3sJ3PCpYMAK0j10g2FiK8aUcmdI5DqX-HRptY-RfsC4vyuqy0'
-    })
+    phone: str = ""  # Set in app_config.json
+    password: str = ""  # Set in app_config.json
+    imei: str = ""  # Set in app_config.json
+    cookies: Optional[Dict[str, str]] = None
 
 class ZaloConfig(BaseSettings):
     oa: ZaloOAConfig = Field(default_factory=ZaloOAConfig)

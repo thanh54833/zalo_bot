@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Body, HTTPException
 from typing import Dict, Any
+import logging
 
 from services.app_settings import config_manager, AppSettings
 from services.advisor import agent_advisor
-from services.zalo import get_bot_instance
+from services.zalo import get_bot_instance, ZaloBot
+from routers.zalo_personal_router import manage_zalo_personal_bot
 
 router = APIRouter(
     prefix="/api/config",
@@ -57,22 +59,13 @@ async def update_config(updates: Dict[str, Any] = Body(...)):
         if "zalo_config" in updates and "personal" in updates["zalo_config"] and "enabled" in updates["zalo_config"]["personal"]:
             new_zalo_personal_enabled = updates["zalo_config"]["personal"]["enabled"]
             if new_zalo_personal_enabled != old_zalo_personal_enabled:
-                # Get the bot instance
-                zalo_bot = get_bot_instance()
-                if zalo_bot:
-                    # Handle zalo bot enabled state change
-                    await zalo_bot.handle_enabled_state_change(new_zalo_personal_enabled)
-                else:
-                    # Log that bot instance is not available
-                    import logging
-                    logging.warning("ZaloBot instance not available, cannot handle enabled state change")
+                await manage_zalo_personal_bot(new_zalo_personal_enabled)
         
         # Check if zalo OA enabled state changed
         if "zalo_config" in updates and "oa" in updates["zalo_config"] and "enabled" in updates["zalo_config"]["oa"]:
             new_zalo_oa_enabled = updates["zalo_config"]["oa"]["enabled"]
             if new_zalo_oa_enabled != old_zalo_oa_enabled:
                 # Log the change
-                import logging
                 logging.info(f"Zalo OA enabled state changed: {old_zalo_oa_enabled} -> {new_zalo_oa_enabled}")
                 # Here you could add additional logic to handle Zalo OA state change
         
