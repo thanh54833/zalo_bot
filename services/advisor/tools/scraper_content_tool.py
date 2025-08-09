@@ -19,7 +19,7 @@ class ScrapedContent(BaseModel):
 
 
 class ScraperContentTool(BaseTool):
-    name: str = "content_scraper"
+    name: str = "scraper_content"
     description: str = "Extracts the main content and title from a list of URLs. Useful for getting detailed information from a webpage after finding it with a search."
     args_schema: Type[BaseModel] = ScraperInput
 
@@ -55,62 +55,41 @@ class ScraperContentTool(BaseTool):
         except Exception as e:
             return ScrapedContent(url=url, content=f"Error scraping: {e}", title=None, success=False)
 
-    async def _arun(self, urls: List[str]) -> List[dict]:
+    def _run(
+            self,
+            urls: List[str]
+    ) -> str:
+        """Process a batch of URLs concurrently and return a formatted string."""
+        results = asyncio.run(self._arun(urls=urls))
+        return self._format_results(results)
+
+    async def _arun(
+            self,
+            urls: List[str],
+    ) -> List[dict]:
         """Process a batch of URLs concurrently and return as a list of dicts."""
-
         async with aiohttp.ClientSession(headers=self.headers) as session:
-            tasks = []
-            semaphore = asyncio.Semaphore(self.max_concurrent)
-
-            async def bounded_extract(url):
-                async with semaphore:
-                    return await self._extract_content(session, url)
-
-            for url in urls:
-                task = asyncio.create_task(bounded_extract(url))
-                tasks.append(task)
-
+            tasks = [self._extract_content(session, url) for url in urls]
             results = await asyncio.gather(*tasks)
-
-            log = {
-                "input": {
-                    "urls": urls
-                },
-                "output": {
-                    "length": len(results),
-                    "length_content": [len(result.content) if result.content is not None else 0 for result in results],
-                }
-            }
-            print("ScraperContentTool -> ", log)
-
             return [result.dict() for result in results]
 
-    def _run(self, urls: List[str]) -> List[dict]:
-        """Sync wrapper for the async run method."""
-        return asyncio.run(self._arun(urls))
+    def _format_results(self, results: List[dict]) -> str:
+        """Format the results into a single string."""
+        if not results:
+            return "No content was scraped."
 
-
-# --- Standalone Test ---
-# python google_agent/tools/scraper_content_tool.py
-if __name__ == "__main__":
-    import json
-
-
-    async def test_scraper():
-        """Function to test the ScraperContentTool with various URLs."""
-        tool = ScraperContentTool()
-        test_urls = [
-            "https://concung.com/ta-takato/so-sanh-cac-loai-ta-quan-cho-tre-loai-nao-tot-nhat-bv676.html?srsltid=AfmBOopKMQzrIkO-h9-YCTKQSoRJJPdWKvKtHq9q0IsD0Zo6o6fG2qkO",
-            # Good URL
-            "https://concung.com/ta-takato/so-sanh-cac-loai-ta-quan-cho-tre-loai-nao-tot-nhat-bv676.html?srsltid=AfmBOopKMQzrIkO-h9-YCTKQSoRJJPdWKvKtHq9q0IsD0Zo6o6fG2qkO"
-        ]
-
-        print("--- Testing ScraperContentTool ---")
-        print(f"Scraping {len(test_urls)} URLs...")
-        results = await tool._arun(urls=test_urls)
-
-        print("\n--- Results ---")
-        print(json.dumps(results, indent=2, ensure_ascii=False))
-
-
-    asyncio.run(test_scraper())
+        formatted_output = []
+        for res in results:
+            if res['success']:
+                content_preview = res.get('content', '')[:500]
+                formatted_output.append(
+                    f"URL: {res['url']}\n"
+                    f"Title: {res.get('title', 'N/A')}\n"
+                    f"Content: {content_preview}...\n"
+                )
+            else:
+                formatted_output.append(
+                    f"URL: {res['url']}\n"
+                    f"Error: Failed to scrape content.\n"
+                )
+        return "\n---\n".join(formatted_output)

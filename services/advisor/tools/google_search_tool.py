@@ -48,25 +48,12 @@ class GoogleSearchTool(BaseTool):
             return f"An error occurred during Google search: {e}"
         return results
 
+    def _run(self, query: str, num_results: int = 5, lang: str = "vi") -> Union[List[SearchItem], str]:
+        """Performs a synchronous Google search."""
+        return self._search_sync(query, num_results, lang)
+
     async def _arun(
             self, query: str, num_results: int = 5, lang: str = "vi"
-    ) -> Dict[str, Union[List[SearchItem], str]]:
-        """
-        Runs a general web search and a concung.com-specific search in parallel.
-        Returns a dictionary with prioritized results from concung.com.
-        """
-        normal_query = f"{query}"
-
-        # Run both searches in parallel using the synchronous _search_sync method in separate threads.
-        loop = asyncio.get_running_loop()
-        task_normal = loop.run_in_executor(None, self._search_sync, normal_query, num_results, lang)
-
-        results_normal = await asyncio.gather(
-            task_normal
-        )
-
-        return results_normal
-
-    def _run(self, query: str, num_results: int = 10, lang: str = "vi") -> Dict[str, Union[List[SearchItem], str]]:
-        """Synchronous wrapper for the async run method."""
-        return asyncio.run(self._arun(query, num_results, lang))
+    ) -> Union[List[SearchItem], str]:
+        """Asynchronously performs a Google search."""
+        return await asyncio.to_thread(self._search_sync, query, num_results, lang)

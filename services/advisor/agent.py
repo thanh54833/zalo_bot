@@ -19,29 +19,6 @@ from services.advisor.tools.scraper_content_tool import ScraperContentTool
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Define a proper MockLLM that is compatible with langgraph
-class MockLLM(BaseChatModel):
-    """Mock LLM for testing when API key is not available"""
-    
-    def invoke(self, messages, **kwargs):
-        return AIMessage(content="This is a mock response for testing")
-    
-    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
-        # A simple implementation for _generate
-        return AIMessage(content="This is a mock response for testing")
-
-    async def _acall(self, *args, **kwargs):
-        # A simple async implementation
-        return "This is a mock async response for testing"
-
-    def bind_tools(self, tools, **kwargs):
-        """Required for compatibility with langgraph's create_react_agent"""
-        return self
-        
-    @property
-    def _llm_type(self):
-        return "mock"
-
 class AgentAdvisor:
     """Agent manager that uses the configuration system for settings"""
 
@@ -107,21 +84,17 @@ class AgentAdvisor:
                     os.environ["GROQ_API_KEY"] = api_key
             
             if not api_key:
-                logger.warning("GROQ_API_KEY not found in environment or config, using mock LLM for testing")
-                self.llm = MockLLM(
-                    model=self.model_name,
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens
-                )
-            else:
-                self.llm = ChatGroq(
-                    api_key=api_key,
-                    model=self.model_name,
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens,
-                    callbacks=self.callbacks
-                )
-                logger.info(f"Initialized ChatGroq with model {self.model_name}")
+                logger.error("GROQ_API_KEY not found in environment or config. Agent cannot be initialized.")
+                return False
+
+            self.llm = ChatGroq(
+                api_key=api_key,
+                model=self.model_name,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                callbacks=self.callbacks
+            )
+            logger.info(f"Initialized ChatGroq with model {self.model_name}")
 
             # Initialize tools
             self.tools = []
@@ -144,7 +117,7 @@ class AgentAdvisor:
             logger.info(f"Built agent {self.agent_id} with configuration")
             
             self.is_initialized = True
-            logger.info(f"Agent {self.agent_id} initialized successfully")
+            logger.info(f"Agent {self.agent_id} initialized successfully")  
             return True
         except Exception as e:
             logger.error(f"Error initializing agent: {e}")
