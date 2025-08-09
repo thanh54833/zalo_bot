@@ -17,7 +17,7 @@
       "secret_key": "NrGu0gUeiEnRrajtwPmF"
     },
     "personal": {
-      "enabled": true,
+      "enabled": false,
       "phone": "0559362614",
       "password": "Lumia520",
       "imei": "2bd94c6b-f25c-418b-8e26-adb12c47086b-84fb6a68ab92a6d30981c69a1117885c",
