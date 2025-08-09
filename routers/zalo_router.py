@@ -6,18 +6,12 @@ from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
 
 from services.zalo import ZaloBot
+from services.app_settings import config_manager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Zalo configuration
-PHONE = "0559362614"
-PASSWORD = "Lumia520"
-IMEI = "2bd94c6b-f25c-418b-8e26-adb12c47086b-84fb6a68ab92a6d30981c69a1117885c"
-COOKIES = {
-    'zpw_sek': 'PHX8.442114449.a0.ztLU0MccDF3uXsxgIAOqy1A4KPjBd1Q40v4VY3sJ3PCpYMAK0j10g2FiK8aUcmdI5DqX-HRptY-RfsC4vyuqy0'
-}
 
 # Create router
 router = APIRouter(
@@ -40,11 +34,14 @@ def run_bot():
     """Initializes and runs the Zalo bot in a blocking manner."""
     global bot_instance, bot_status
     try:
+        # Get personal account config from the central manager's new structure
+        cfg = config_manager.settings.zalo_config.personal
+        
         # Prioritize cookie-based login
-        if all(COOKIES.values()):
-            bot_instance = ZaloBot(PHONE, "", imei=IMEI, cookies=COOKIES)
+        if cfg.cookies and all(cfg.cookies.values()):
+            bot_instance = ZaloBot(cfg.phone, "", imei=cfg.imei, cookies=cfg.cookies)
         else:
-            bot_instance = ZaloBot(PHONE, PASSWORD, imei=IMEI)
+            bot_instance = ZaloBot(cfg.phone, cfg.password, imei=cfg.imei)
 
         bot_status.status = "running"
         bot_status.is_listening = True

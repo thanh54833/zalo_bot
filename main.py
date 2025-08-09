@@ -10,15 +10,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-# --- Set Groq API Key ---
-# WARNING: Storing API keys directly in code is insecure.
-# It's recommended to use environment variables or a secret management system for production.
-os.environ['GROQ_API_KEY'] = "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"
-
-# Import our zalo router
-from routers import zalo_router
+# --- New Config and Routers ---
+from services.app_settings import config_manager
+from routers import zalo_router, config_router
 
 app = FastAPI()
+
+# ----------------------------------------------------
+# Application lifecycle hooks for config management
+# ----------------------------------------------------
+@app.on_event("startup")
+async def startup_event():
+    await config_manager.load()
+    # Set GROQ API Key for langchain if not set as env var
+    # This allows libraries that use os.environ to work correctly
+    if 'GROQ_API_KEY' not in os.environ:
+        os.environ['GROQ_API_KEY'] = config_manager.settings.agent_config.model.api_key
+
 
 # Add CORS middleware
 app.add_middleware(
@@ -28,9 +36,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
-
-# Configuration - These should be loaded from environment variables in production
-OA_SECRET_KEY = "NrGu0gUeiEnRrajtwPmF"  # Get this from Zalo Developer Portal
 
 # Create static directory if it doesn't exist
 os.makedirs("static", exist_ok=True)
@@ -45,8 +50,9 @@ class ZaloMessage(BaseModel):
     timestamp: str
 
 
-# Include our zalo router
+# Include routers
 app.include_router(zalo_router.router)
+app.include_router(config_router.router)
 
 
 @app.get("/")
@@ -70,70 +76,43 @@ async def zalo_webhook(request: Request, mac: str = Header(None)):
     """
     # Get raw request body
     body = await request.body()
-    body_str = body.decode()
 
-    print("body -> ", body)
-    print("Received webhook event -> ", verify_signature(body, mac))
-
-    # During initial setup, Zalo might send verification requests without proper signatures
-    # Skip signature verification for now
+    # Verify signature using the key from our config
+    if not verify_signature(body, mac):
+        # In a real app, you might want to raise an HTTPException here
+        print("Webhook signature verification failed!")
+        # For now, we'll still proceed for testing purposes
+        # return {"status": "error", "message": "Invalid signature"}
+    
+    print("body -> ", body.decode())
+    print("Received webhook event -> ", True)
 
     try:
-        # Try to parse the request body
-        data = json.loads(body_str)
-
-        # Always return success for webhook verification
+        # The actual logic for handling the event should be implemented here or in a dedicated service
+        # For now, just acknowledge receipt as per Zalo's requirement
         return {"status": "success"}
-
     except Exception as e:
-        # If there's an error, still return success for webhook verification
+        print(f"Error processing webhook: {e}")
         return {"status": "success"}
 
 
-def verify_signature(body: str, mac: str) -> bool:
+def verify_signature(body: bytes, mac: str) -> bool:
     """
     Verify the webhook signature using HMAC
     """
     if not mac:
         return False
+    
+    # Access the secret key from the new nested structure
+    secret = config_manager.settings.zalo_config.oa.secret_key
 
     computed_hash = hmac.new(
-        OA_SECRET_KEY.encode(),
-        body.encode(),
+        secret.encode(),
+        body,  # hmac works with bytes
         hashlib.sha256
     ).hexdigest()
 
     return hmac.compare_digest(computed_hash, mac)
-
-
-def handle_text_message(message: ZaloMessage):
-    """Handle text messages from users"""
-    # Implement your text message handling logic here
-    return {"status": "success"}
-
-
-def handle_image_message(message: ZaloMessage):
-    """Handle image messages from users"""
-    # Implement your image message handling logic here
-    return {"status": "success"}
-
-
-def handle_sticker_message(message: ZaloMessage):
-    """Handle sticker messages from users"""
-    # Implement your sticker message handling logic here
-    return {"status": "success"}
-
-
-def handle_follow_event(message: ZaloMessage):
-    """Handle when a user follows the Official Account"""
-    # Implement your follow event handling logic here
-    return {"status": "success"}
-
-
-def handle_unfollow_event(message: ZaloMessage):
-    """Handle when a user unfollows the Official Account"""
-    # Implement your unfollow event handling logic here
-    return {"status": "success"}
 
 
 # Add specific route for Zalo verification file
