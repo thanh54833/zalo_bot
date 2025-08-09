@@ -129,8 +129,13 @@ class ZaloBot(ZaloAPI):
         """Disconnect from Zalo and clean up resources"""
         try:
             if self.is_connected:
-                # Logout from Zalo
-                self.logout()
+                # Stop listening thread gracefully and logout
+                if hasattr(self, 'zalo'):
+                    if hasattr(self.zalo, 'stop'):
+                        self.zalo.stop()
+                    if hasattr(self.zalo, 'logout'):
+                        self.zalo.logout()
+
                 self.is_connected = False
                 logger.info("ZaloBot disconnected and logged out successfully")
             return True
