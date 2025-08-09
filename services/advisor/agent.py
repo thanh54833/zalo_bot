@@ -65,8 +65,7 @@ class AgentAdvisor:
         agent = create_react_agent(
             model=self.llm,
             tools=self.tools,
-            prompt=self.prompt,
-            callbacks=self.callbacks
+            prompt=self.prompt
         )
         logger.info("Built agent with default configuration")
         return agent
