@@ -3,15 +3,15 @@
 This module provides access to the system prompt from the global configuration.
 """
 
-from services.config import config_manager
+from services.app_settings import config_manager
 
 def get_system_prompt():
-    """Get the system prompt from the global configuration.
+    """Get the system prompt from the agent configuration.
     
     Returns:
-        str: The default system prompt
+        str: The system prompt
     """
-    return config_manager.get_global().default_system_prompt
+    return config_manager.settings.agent_config.system_prompt
 
 # For backward compatibility
 SYSTEM_PROMPT = get_system_prompt()

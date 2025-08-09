@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 # --- New Config and Routers ---
 from services.app_settings import config_manager
-from routers import zalo_router, config_router
+from routers import config_router
 
 app = FastAPI()
 
@@ -51,7 +51,6 @@ class ZaloMessage(BaseModel):
 
 
 # Include routers
-app.include_router(zalo_router.router)
 app.include_router(config_router.router)
 
 

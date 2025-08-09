@@ -1,0 +1,26 @@
+{
+  "agent_config": {
+    "system_prompt": "You are a helpful Zalo assistant.",
+    "tools": [],
+    "model": {
+      "provider": "groq",
+      "name": "llama3-8b-8192",
+      "api_key": "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",
+      "temperature": 0.7,
+      "max_tokens": 2048
+    }
+  },
+  "zalo_config": {
+    "oa": {
+      "secret_key": "NrGu0gUeiEnRrajtwPmF"
+    },
+    "personal": {
+      "phone": "0559362614",
+      "password": "Lumia520",
+      "imei": "2bd94c6b-f25c-418b-8e26-adb12c47086b-84fb6a68ab92a6d30981c69a1117885c",
+      "cookies": {
+        "zpw_sek": "PHX8.442114449.a0.ztLU0MccDF3uXsxgIAOqy1A4KPjBd1Q40v4VY3sJ3PCpYMAK0j10g2FiK8aUcmdI5DqX-HRptY-RfsC4vyuqy0"
+      }
+    }
+  }
+}

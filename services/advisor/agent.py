@@ -9,8 +9,8 @@ from langchain.callbacks.tracers import LangChainTracer
 from langchain.smith import RunEvalConfig
 from langsmith import Client
 
-from services.config import config_manager
-from services.config.integrations import integration_manager
+from services.app_settings import config_manager
+from services.integrations import integration_manager
 from services.advisor.tools.google_search_tool import GoogleSearchTool
 from services.advisor.tools.scraper_content_tool import ScraperContentTool
 
@@ -52,48 +52,20 @@ class AgentAdvisor:
 
     def load_config(self):
         """Load configuration from the config manager"""
-        # Get global config for default system prompt
-        global_config = config_manager.get_global()
-        default_system_prompt = global_config.default_system_prompt
+        # Get agent config from new structure
+        agent_config = config_manager.settings.agent_config
         
-        # Get agent config or create default
-        agent_config = config_manager.get_agent(self.agent_id)
-        
-        # If no config exists, use defaults and create one
-        if not agent_config:
-            logger.info(f"No configuration found for agent {self.agent_id}, using defaults")
-            # Initialize with defaults
-            self.model_name = "meta-llama/llama-4-scout-17b-16e-instruct"
-            self.temperature = 0.0
-            self.max_tokens = 1024
-            self.prompt = default_system_prompt
-            self.enabled_tools = ["google_search", "scraper_content"]
-            
-            # Save the default configuration
-            self._save_config_sync()
-        else:
-            # Get model settings from config
-            model_name = self.agent_id
-            model_config = config_manager.get_model(model_name)
-            
-            if model_config:
-                self.model_name = model_config.name
-                self.temperature = model_config.temperature
-                self.max_tokens = model_config.max_tokens
-            else:
-                # Use defaults if no model config
-                self.model_name = "meta-llama/llama-4-scout-17b-16e-instruct"
-                self.temperature = 0.0
-                self.max_tokens = 1024
-            
-            # Get agent-specific settings
-            self.prompt = agent_config.prompt or default_system_prompt
-            self.enabled_tools = agent_config.tools or ["google_search", "scraper_content"]
+        # Initialize with values from config or defaults
+        self.model_name = agent_config.model.name
+        self.temperature = agent_config.model.temperature
+        self.max_tokens = agent_config.model.max_tokens
+        self.prompt = agent_config.system_prompt
+        self.enabled_tools = agent_config.tools or ["google_search", "scraper_content"]
         
         # Initialize the LLM with config values
         try:
             # Check for API key
-            api_key = os.environ.get("GROQ_API_KEY")
+            api_key = os.environ.get("GROQ_API_KEY") or agent_config.model.api_key
             if not api_key:
                 logger.warning("GROQ_API_KEY not found in environment, using mock LLM for testing")
                 # For testing without API key, use a simple mock
@@ -152,23 +124,19 @@ class AgentAdvisor:
 
     async def _save_config(self):
         """Save the current configuration to the config manager"""
-        # Save agent config
-        await config_manager.update_agent(self.agent_id, {
-            "prompt": self.prompt,
-            "tools": self.enabled_tools,
-            "metadata": {
-                "description": "Default agent configuration"
+        # Update the config with current values
+        await config_manager.update({
+            "agent_config": {
+                "system_prompt": self.prompt,
+                "tools": self.enabled_tools,
+                "model": {
+                    "name": self.model_name,
+                    "temperature": self.temperature,
+                    "max_tokens": self.max_tokens,
+                    "provider": "groq"
+                }
             }
         })
-        
-        # Save model config if it doesn't exist
-        if not config_manager.get_model(self.agent_id):
-            await config_manager.update_model(self.agent_id, {
-                "name": self.model_name,
-                "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
-                "provider": "groq"
-            })
 
     def build(self):
         """Build the ReAct agent with current configuration"""
