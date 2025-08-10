@@ -12,6 +12,8 @@ from pydantic import BaseModel
 
 # --- Config and Routers ---
 from services.app_settings import config_manager
+from services.advisor.agent import AgentAdvisor
+from services.advisor import agent_advisor
 from routers import config_router, zalo_oa_router, zalo_personal_router, agent_router
 
 app = FastAPI()
@@ -22,10 +24,12 @@ app = FastAPI()
 @app.on_event("startup")
 async def startup_event():
     await config_manager.load()
-    # Set GROQ API Key for langchain if not set as env var
-    # This allows libraries that use os.environ to work correctly
-    if 'GROQ_API_KEY' not in os.environ:
-        os.environ['GROQ_API_KEY'] = config_manager.settings.agent_config.model.api_key
+    # Create a default instance of AgentAdvisor and assign it to the module-level variable
+    import services.advisor
+    services.advisor.agent_advisor = AgentAdvisor()
+    # Also update the reference in agent_router
+    agent_router.agent_advisor = services.advisor.agent_advisor
+
 
 
 # Add CORS middleware

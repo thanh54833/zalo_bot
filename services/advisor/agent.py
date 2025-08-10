@@ -19,6 +19,7 @@ from services.advisor.tools.scraper_content_tool import ScraperContentTool
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
 class AgentAdvisor:
     """Agent manager that uses the configuration system for settings"""
 
@@ -35,7 +36,9 @@ class AgentAdvisor:
         self.llm = None
         self.tools = []
         self.agent = None
-        
+        self.model_name = None
+        self.enabled_tools = []
+
         # Initialize LangSmith tracer if configured
         self.callbacks = []
         if integration_manager.is_langsmith_configured:
@@ -44,27 +47,34 @@ class AgentAdvisor:
                 self.tracer = LangChainTracer(project_name=project_name)
                 self.callbacks.append(self.tracer)
                 logger.info(f"LangSmith tracer initialized for project: {project_name}")
-                
+
                 # Initialize LangSmith client
                 self.client = integration_manager.langsmith_client
             except Exception as e:
                 logger.error(f"Error initializing LangSmith: {e}")
-        
+
         # Initialize based on config
         if config_manager.settings.agent_config.enabled:
             self.initialize()
+            
+    async def handle_enabled_state_change(self, is_enabled: bool):
+        """Handle changes to the enabled state"""
+        if is_enabled and not self.is_initialized:
+            self.initialize()
+        elif not is_enabled and self.is_initialized:
+            self.shutdown()
 
     def initialize(self):
         """Initialize the agent with the current configuration"""
         if self.is_initialized:
             logger.info("Agent is already initialized.")
             return True
-            
+
         try:
             # Load configuration
             agent_config = config_manager.settings.agent_config
             self.is_enabled = agent_config.enabled
-            
+
             if not self.is_enabled:
                 logger.info("Agent is disabled. Not initializing.")
                 return False
@@ -77,14 +87,10 @@ class AgentAdvisor:
             logger.info(f"Loaded configuration for agent {self.agent_id}. Enabled: {self.is_enabled}")
 
             # Initialize the LLM
-            api_key = os.environ.get("GROQ_API_KEY")
+            api_key = config_manager.settings.agent_config.model.api_key
+
             if not api_key:
-                api_key = config_manager.settings.agent_config.model.api_key
-                if api_key:
-                    os.environ["GROQ_API_KEY"] = api_key
-            
-            if not api_key:
-                logger.error("GROQ_API_KEY not found in environment or config. Agent cannot be initialized.")
+                logger.error("GROQ_API_KEY not found in config. Agent cannot be initialized.")
                 return False
 
             self.llm = ChatGroq(
@@ -107,28 +113,28 @@ class AgentAdvisor:
             # Build the agent
             if not self.llm:
                 logger.error("LLM not initialized. Cannot build agent.")
-                return None
-            
+                return False
+
             self.agent = create_react_agent(
                 model=self.llm,
                 tools=self.tools,
                 prompt=self.prompt
             )
             logger.info(f"Built agent {self.agent_id} with configuration")
-            
+
             self.is_initialized = True
-            logger.info(f"Agent {self.agent_id} initialized successfully")  
+            logger.info(f"Agent {self.agent_id} initialized successfully")
             return True
         except Exception as e:
             logger.error(f"Error initializing agent: {e}")
             self.is_initialized = False
             return False
-    
+
     def shutdown(self):
         """Shutdown the agent and clean up resources"""
         if not self.is_initialized:
             return
-            
+
         try:
             # Clean up tools
             for tool in self.tools:
@@ -137,7 +143,7 @@ class AgentAdvisor:
                         tool.close()
                     except Exception as e:
                         logger.error(f"Error closing tool {tool.name}: {e}")
-            
+
             self.agent = None
             self.is_initialized = False
             logger.info(f"Agent {self.agent_id} shutdown complete")
@@ -158,19 +164,19 @@ class AgentAdvisor:
         if not self.is_enabled:
             logger.warning("Agent is disabled. Cannot process message.")
             return {"output": "Agent is currently disabled."}
-            
+
         if not self.is_initialized or self.agent is None:
             logger.warning("Agent is not initialized. Attempting to initialize...")
             if not self.initialize():
                 return {"output": "Agent could not be initialized. Please check the logs."}
-            
+
         try:
             # Prepare input
             if isinstance(messages, dict) and 'messages' in messages:
                 input_data = messages
             else:
                 input_data = {"messages": messages}
-            
+
             # Add run metadata if LangSmith is configured
             if integration_manager.is_langsmith_configured:
                 metadata = {
@@ -179,19 +185,19 @@ class AgentAdvisor:
                     "user_id": "zalo_user",
                     "agent_id": self.agent_id
                 }
-                
+
                 # Try to extract user message for better tracing
                 if isinstance(messages, dict) and 'messages' in messages and messages['messages']:
                     user_msg = next((m for m in messages['messages'] if m.get('role') == 'user'), None)
                     if user_msg and 'content' in user_msg:
                         metadata["user_query"] = user_msg['content'][:100]  # First 100 chars
-            
+
                 # Invoke with metadata
                 return self.agent.invoke(input_data, config={"metadata": metadata})
-            
+
             # Regular invoke without metadata
             return self.agent.invoke(input_data)
-            
+
         except Exception as e:
             logger.error(f"Error invoking agent: {e}")
             return {"output": f"Error: {str(e)}"}
@@ -207,5 +213,4 @@ class AgentAdvisor:
         }
 
 
-# Create a default instance of AgentAdvisor
-agent_advisor = AgentAdvisor()
+
