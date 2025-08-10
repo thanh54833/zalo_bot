@@ -13,7 +13,7 @@ from pydantic import BaseModel
 # --- Config and Routers ---
 from services.app_settings import config_manager
 from services.advisor.agent import AgentAdvisor
-from routers import config_router, zalo_oa_router, zalo_personal_router, agent_router
+from routers import config_router, zalo_oa_router, zalo_personal_router, agent_router, testing_router
 import services.advisor
 
 app = FastAPI()
@@ -45,10 +45,11 @@ app.add_middleware(
 os.makedirs("static", exist_ok=True)
 
 # Include routers
-app.include_router(config_router.router)
-app.include_router(zalo_oa_router.router)
-app.include_router(zalo_personal_router.router)
-app.include_router(agent_router.router)
+app.include_router(config_router)
+app.include_router(zalo_oa_router)
+app.include_router(zalo_personal_router)
+app.include_router(agent_router)
+app.include_router(testing_router)
 
 
 @app.get("/")
