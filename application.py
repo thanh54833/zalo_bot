@@ -1,36 +1,21 @@
-import hashlib
-import hmac
-import json
-import os
-from typing import Optional
-
-import fastapi.responses
 from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+import fastapi.responses
+import os
 
-# --- Config and Routers ---
 from services.app_settings import config_manager
 from services.advisor.agent import AgentAdvisor
 from routers import config_router, zalo_oa_router, zalo_personal_router, agent_router
-import services.advisor
 
 app = FastAPI()
 
-
-# ----------------------------------------------------
-# Application lifecycle hooks for config management
-# ----------------------------------------------------
 @app.on_event("startup")
 async def startup_event():
     await config_manager.load()
-    # Create a default instance of AgentAdvisor and assign it to the module-level variable
-
+    import services.advisor
     services.advisor.agent_advisor = AgentAdvisor()
-    # Also update the reference in agent_router
     agent_router.agent_advisor = services.advisor.agent_advisor
-
 
 # Add CORS middleware
 app.add_middleware(
@@ -43,6 +28,7 @@ app.add_middleware(
 
 # Create static directory if it doesn't exist
 os.makedirs("static", exist_ok=True)
+
 
 # Include routers
 app.include_router(config_router.router)
@@ -63,4 +49,4 @@ async def zalo_verification_file():
 
 
 # Mount static files AFTER defining all routes
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static") 
