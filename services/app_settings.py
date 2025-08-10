@@ -9,6 +9,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # --- Nested Config Models ---
 
+class ToolConfig(BaseSettings):
+    name: str
+    type: str
+    description: str
+    curl: str
+    input: Dict[str, Any]
+    header: Dict[str, str]
+    output: Dict[str, Any]
+
 class ModelConfig(BaseSettings):
     provider: str = "groq"
     name: str = "llama3-8b-8192"
@@ -19,7 +28,7 @@ class ModelConfig(BaseSettings):
 class AgentConfig(BaseSettings):
     enabled: bool = True
     system_prompt: str = "You are a helpful Zalo assistant."
-    tools: List[str] = Field(default_factory=list)
+    tools: List[ToolConfig] = Field(default_factory=list)
     model: ModelConfig = Field(default_factory=ModelConfig)
 
 

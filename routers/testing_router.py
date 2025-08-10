@@ -22,7 +22,7 @@ class UserData(BaseModel):
     age: Optional[int] = None
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "user_id": "usr_12345",
                 "name": "Nguyen Van A",
@@ -37,15 +37,29 @@ class ProductInfo(BaseModel):
     price: float
     category: str
     in_stock: bool
+    description: Optional[str] = None
+    tags: Optional[List[str]] = None
+    weight: Optional[float] = None
+    dimensions: Optional[Dict[str, float]] = None
+    supplier_info: Optional[Dict[str, Any]] = None
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "product_id": "prod_001",
                 "name": "iPhone 15 Pro Max",
                 "price": 29990000.0,
                 "category": "Electronics",
-                "in_stock": True
+                "in_stock": True,
+                "description": "Latest iPhone with advanced camera system",
+                "tags": ["smartphone", "apple", "5G", "camera"],
+                "weight": 221.0,
+                "dimensions": {"length": 159.9, "width": 76.7, "height": 8.25},
+                "supplier_info": {
+                    "supplier_id": "SUP_001",
+                    "name": "Apple Inc.",
+                    "contact": "+1-800-275-2273"
+                }
             }
         }
 
@@ -56,7 +70,7 @@ class OrderRequest(BaseModel):
     total_amount: float
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "order_id": "ORD_20240115_001",
                 "items": [
@@ -184,18 +198,73 @@ async def api_2(
 async def api_3(
     product_info: ProductInfo,
     request: Request,
+    # Required headers
     x_store_id: str = Header(..., alias="X-Store-ID", example="STORE_HCM_001"),
     x_merchant_key: str = Header(..., alias="X-Merchant-Key", example="merchant_key_xyz789_secure"),
-    accept: str = Header("application/json", alias="Accept", example="application/json")
+    
+    # Optional headers with defaults
+    accept: str = Header("application/json", alias="Accept", example="application/json"),
+    x_client_version: str = Header("1.0.0", alias="X-Client-Version", example="2.1.5"),
+    x_request_id: str = Header(None, alias="X-Request-ID", example="req_20240115_001"),
+    x_user_agent: str = Header(None, alias="X-User-Agent", example="MobileApp/2.1.5"),
+    x_timezone: str = Header("UTC", alias="X-Timezone", example="Asia/Ho_Chi_Minh"),
+    x_language: str = Header("en", alias="X-Language", example="vi"),
+    
+    # Query parameters
+    update_inventory: bool = Query(True, description="Whether to update inventory levels", example=True),
+    notify_supplier: bool = Query(False, description="Send notification to supplier", example=False),
+    priority: str = Query("normal", description="Update priority level", example="high"),
+    batch_id: Optional[str] = Query(None, description="Batch update identifier", example="BATCH_20240115_001"),
+    dry_run: bool = Query(False, description="Simulate update without making changes", example=False),
+    
+    # Additional query parameters
+    include_analytics: bool = Query(True, description="Include analytics data in response", example=True),
+    return_previous_state: bool = Query(False, description="Return previous product state", example=False),
+    validate_only: bool = Query(False, description="Validate data without updating", example=False)
 ):
     """
-    Testing API 3 - PUT method with required headers and complex body
-    Simulates a product update endpoint
+    Testing API 3 - PUT method with comprehensive parameters
+    Simulates a product update endpoint with extensive configuration options
     """
     try:
         # Simulate merchant validation
         if len(x_merchant_key) < 10:
             raise HTTPException(status_code=403, detail="Invalid merchant key")
+        
+        # Validate priority
+        valid_priorities = ["low", "normal", "high", "urgent"]
+        if priority not in valid_priorities:
+            raise HTTPException(status_code=400, detail=f"Invalid priority. Must be one of: {valid_priorities}")
+        
+        # Simulate dry run mode
+        if dry_run:
+            return ApiResponse(
+                success=True,
+                message="Dry run completed - no changes made",
+                data={
+                    "dry_run": True,
+                    "would_update": {
+                        "product_id": product_info.product_id,
+                        "changes": "Product would be updated with provided data"
+                    }
+                },
+                timestamp=datetime.now().isoformat()
+            )
+        
+        # Validate only mode
+        if validate_only:
+            return ApiResponse(
+                success=True,
+                message="Validation completed successfully",
+                data={
+                    "validation": {
+                        "product_id": product_info.product_id,
+                        "is_valid": True,
+                        "warnings": []
+                    }
+                },
+                timestamp=datetime.now().isoformat()
+            )
         
         # Fake product update response
         response_data = {
@@ -205,23 +274,62 @@ async def api_3(
                 "price": product_info.price,
                 "category": product_info.category,
                 "in_stock": product_info.in_stock,
+                "description": product_info.description,
+                "tags": product_info.tags,
+                "weight": product_info.weight,
+                "dimensions": product_info.dimensions,
+                "supplier_info": product_info.supplier_info,
                 "last_updated": datetime.now().isoformat(),
                 "store_id": x_store_id,
                 "sku": f"SKU-{product_info.product_id}-{x_store_id}",
-                "status": "updated"
+                "status": "updated",
+                "update_priority": priority,
+                "batch_id": batch_id
             },
             "inventory_status": {
                 "stock_level": 150 if product_info.in_stock else 0,
                 "reorder_point": 20,
-                "last_restocked": "2024-01-10T09:00:00Z"
+                "last_restocked": "2024-01-10T09:00:00Z",
+                "inventory_updated": update_inventory
             },
             "request_info": {
                 "store_id": x_store_id,
                 "merchant_key_length": len(x_merchant_key),
                 "accept_header": accept,
-                "request_method": "PUT"
+                "request_method": "PUT",
+                "client_version": x_client_version,
+                "request_id": x_request_id,
+                "user_agent": x_user_agent,
+                "timezone": x_timezone,
+                "language": x_language,
+                "update_inventory": update_inventory,
+                "notify_supplier": notify_supplier,
+                "priority": priority,
+                "batch_id": batch_id,
+                "dry_run": dry_run,
+                "include_analytics": include_analytics,
+                "return_previous_state": return_previous_state,
+                "validate_only": validate_only
             }
         }
+        
+        # Add analytics if requested
+        if include_analytics:
+            response_data["analytics"] = {
+                "update_frequency": "daily",
+                "last_30_days_updates": 15,
+                "popular_categories": ["Electronics", "Fashion", "Home"],
+                "price_change_trend": "stable"
+            }
+        
+        # Add previous state if requested
+        if return_previous_state:
+            response_data["previous_state"] = {
+                "product_id": product_info.product_id,
+                "name": f"Previous {product_info.name}",
+                "price": product_info.price * 0.95,
+                "last_updated": "2024-01-14T10:00:00Z"
+            }
         
         return ApiResponse(
             success=True,
