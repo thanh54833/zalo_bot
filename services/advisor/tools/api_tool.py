@@ -551,7 +551,7 @@ if __name__ == "__main__":
             for tool in all_tools:
                 print(f"\n🔧 Tool: {tool.name}")
                 print(f" Description: {tool.description[:150]}...")
-                print(f"📊 Input Schema: {tool.args_schema.__name__}")
+                print(f"📊 Input Schema: {tool.args_schema.__name__}") 
                 
                 # ✅ SỬA LỖI PYDANTIC V2 - SỬ DỤNG model_fields
                 if hasattr(tool.args_schema, 'model_fields'):

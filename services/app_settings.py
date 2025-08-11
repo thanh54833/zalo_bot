@@ -12,6 +12,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class ToolConfig(BaseSettings):
     name: str
     type: str
+    enabled: bool = True
     description: str
     curl: str
     input: Dict[str, Any]

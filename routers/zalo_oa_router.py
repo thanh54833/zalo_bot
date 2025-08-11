@@ -27,106 +27,101 @@ EVENT_USER_SEND_STICKER = "user_send_sticker"
 EVENT_USER_FOLLOW_OA = "user_follow_oa"
 EVENT_USER_UNFOLLOW_OA = "user_unfollow_oa"
 
+
 class ZaloOAHandler:
     """Handler for Zalo Official Account webhook events"""
-    
+
     def __init__(self):
         self.base_url = "https://openapi.zalo.me/v2.0/oa"
         self.last_activity = datetime.now()
-    
+
     async def verify_signature(self, body: bytes, mac: str) -> bool:
         """Verify the webhook signature using HMAC"""
         if not mac:
             return False
 
         secret = config_manager.settings.zalo_config.oa.secret_key
-        computed_hash = hmac.new(
-            secret.encode(),
-            body,
-            hashlib.sha256
-        ).hexdigest()
+        computed_hash = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
 
         return hmac.compare_digest(computed_hash, mac)
 
     async def is_enabled(self) -> bool:
         """Check if Zalo OA integration is enabled"""
         return config_manager.settings.zalo_config.oa.enabled
-    
+
     async def send_message(self, user_id: str, message: str) -> Dict[str, Any]:
         """Send a text message to a user via Zalo OA API"""
         if not await self.is_enabled():
             logger.warning("Zalo OA integration is disabled. Not sending message.")
             return {"success": False, "message": "Zalo OA integration is disabled"}
-            
+
         try:
             access_token = config_manager.settings.zalo_config.oa.access_token
-            
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{self.base_url}/message",
                     json={
-                        "recipient": {
-                            "user_id": user_id
-                        },
-                        "message": {
-                            "text": message
-                        }
+                        "recipient": {"user_id": user_id},
+                        "message": {"text": message},
                     },
                     headers={
                         "access_token": access_token,
-                        "Content-Type": "application/json"
-                    }
+                        "Content-Type": "application/json",
+                    },
                 )
-                
+
                 if response.status_code == 200:
                     return response.json()
                 else:
                     logger.error(f"Error sending message: {response.text}")
                     return {"success": False, "error": response.text}
-                    
+
         except Exception as e:
             logger.error(f"Error sending message: {e}")
             return {"success": False, "error": str(e)}
-    
+
     async def handle_text_message(self, sender_id: str, message: str) -> Dict[str, Any]:
         """Handle a text message from a user"""
         if not await self.is_enabled():
             logger.warning("Zalo OA integration is disabled. Not processing message.")
             return {"success": False, "message": "Zalo OA integration is disabled"}
-            
+
         try:
             # Process message with AI agent if it's enabled
             if agent_advisor.is_enabled:
                 # Format message for agent
-                agent_messages = [
-                    {"role": "user", "content": message}
-                ]
-                
+                agent_messages = [{"role": "user", "content": message}]
+
                 # Get response from agent
                 agent_response = agent_advisor.invoke(agent_messages)
-                
+
                 # Extract response text
-                response_text = agent_response.get("output", "Sorry, I couldn't process your request.")
-                
+                response_text = agent_response.get(
+                    "output", "Sorry, I couldn't process your request."
+                )
+
                 # Send response back to user
                 return await self.send_message(sender_id, response_text)
             else:
                 logger.warning("AI agent is disabled. Using default response.")
                 return await self.send_message(
-                    sender_id, 
-                    "I'm sorry, but our AI assistant is currently unavailable. Please try again later."
+                    sender_id,
+                    "I'm sorry, but our AI assistant is currently unavailable. Please try again later.",
                 )
-                
+
         except Exception as e:
             logger.error(f"Error handling text message: {e}")
             return {"success": False, "error": str(e)}
-    
+
     async def handle_follow_event(self, sender_id: str) -> Dict[str, Any]:
         """Handle a user following the OA"""
         if not await self.is_enabled():
-            logger.warning("Zalo OA integration is disabled. Not processing follow event.")
+            logger.warning(
+                "Zalo OA integration is disabled. Not processing follow event."
+            )
             return {"success": False, "message": "Zalo OA integration is disabled"}
-            
+
         try:
             welcome_message = "Cảm ơn bạn đã theo dõi. Tôi là trợ lý ảo, hãy đặt câu hỏi để được hỗ trợ!"
             return await self.send_message(sender_id, welcome_message)
@@ -134,15 +129,16 @@ class ZaloOAHandler:
             logger.error(f"Error handling follow event: {e}")
             return {"success": False, "error": str(e)}
 
+
 # Create singleton handler
 zalo_oa_handler = ZaloOAHandler()
+
 
 # Dependency to check if OA integration is enabled
 async def verify_oa_enabled():
     if not await zalo_oa_handler.is_enabled():
         raise HTTPException(
-            status_code=503,
-            detail="Zalo OA integration is currently disabled"
+            status_code=503, detail="Zalo OA integration is currently disabled"
         )
     return True
 
@@ -154,8 +150,11 @@ async def verify_zalo_signature(request: Request, x_zet_mac: str = Header(None))
         raise HTTPException(status_code=401, detail="Invalid signature")
     return body
 
-
-@router.post("/webhook", dependencies=[Depends(verify_oa_enabled), Depends(verify_zalo_signature)])
+    
+@router.post(
+    "/webhook",
+    dependencies=[Depends(verify_oa_enabled), Depends(verify_zalo_signature)],
+)
 async def zalo_oa_webhook(request: Request):
     """
     Handle incoming webhook events from Zalo OA
@@ -164,30 +163,31 @@ async def zalo_oa_webhook(request: Request):
         # Parse request body
         body = await request.json()
         logger.info(f"Received Zalo OA webhook: {body}")
-        
+
         # Extract event data
         event_name = body.get("event_name")
         sender_id = body.get("sender", {}).get("id")
-        
+
         if not event_name or not sender_id:
             logger.warning("Missing event_name or sender_id in webhook payload")
             return {"status": "error", "message": "Invalid payload"}
-        
+
         # Handle different event types
         if event_name == EVENT_USER_SEND_TEXT:
             message = body.get("message", {}).get("text", "")
             await zalo_oa_handler.handle_text_message(sender_id, message)
-            
+
         elif event_name == EVENT_USER_FOLLOW_OA:
             await zalo_oa_handler.handle_follow_event(sender_id)
-            
+
         # Always return success to acknowledge receipt
         return {"status": "success"}
-        
+
     except Exception as e:
         logger.error(f"Error processing Zalo OA webhook: {e}")
         # Still return success to acknowledge receipt
         return {"status": "success"}
+
 
 @router.get("/status")
 async def get_status(enabled: bool = Depends(verify_oa_enabled)):
@@ -195,5 +195,5 @@ async def get_status(enabled: bool = Depends(verify_oa_enabled)):
     return {
         "status": "active",
         "last_activity": zalo_oa_handler.last_activity.isoformat(),
-        "agent_enabled": agent_advisor.is_enabled
-    } 
+        "agent_enabled": agent_advisor.is_enabled,
+    }
