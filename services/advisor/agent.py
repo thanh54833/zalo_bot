@@ -15,6 +15,7 @@ from services.app_settings import config_manager
 from services.integrations import integration_manager
 from services.advisor.tools.google_search_tool import GoogleSearchTool
 from services.advisor.tools.scraper_content_tool import ScraperContentTool
+from services.advisor.tools.api_tool import create_auto_api_tools
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -38,6 +39,12 @@ class AgentAdvisor:
         self.agent = None
         self.model_name = None
         self.enabled_tools = []
+        
+        #  Tool management từ config
+        self.tool_instances = {}  # Cache cho tool instances
+        self.tool_configs = {}    # Cache cho tool configs
+        self.last_config_check = 0
+        self.config_check_interval = 30  # Check config mỗi 30 giây
 
         # Initialize LangSmith tracer if configured
         self.callbacks = []
@@ -64,6 +71,95 @@ class AgentAdvisor:
         elif not is_enabled and self.is_initialized:
             self.shutdown()
 
+    def _load_tool_configs_from_file(self) -> Dict[str, Dict[str, Any]]:
+        """Load tool configurations từ app_config.json"""
+        try:
+            agent_config = config_manager.settings.agent_config
+            tools_config = {}
+            
+            for tool_config in agent_config.tools:
+                tool_name = tool_config.get("name")
+                if tool_name:
+                    tools_config[tool_name] = tool_config
+                    logger.debug(f"Loaded tool config: {tool_name} (type: {tool_config.get('type')})")
+            
+            logger.info(f"Loaded {len(tools_config)} tool configurations from file")
+            return tools_config
+            
+        except Exception as e:
+            logger.error(f"Failed to load tool configs: {e}")
+            return {}
+
+    def _create_tool_instance(self, tool_name: str, tool_config: Dict[str, Any]):
+        """Tạo tool instance dựa trên config"""
+        try:
+            tool_type = tool_config.get("type")
+            
+            if tool_type == "web_search":
+                # ✅ TẠO TOOLS VỚI CONFIG
+                if tool_name == "google_search":
+                    return GoogleSearchTool(tool_config)  # ✅ TRUYỀN CONFIG
+                elif tool_name == "scraper_content":
+                    return ScraperContentTool(tool_config)  # ✅ TRUYỀN CONFIG
+                else:
+                    logger.warning(f"Unknown web_search tool: {tool_name}")
+                    return None
+                    
+            elif tool_type == "api_tool":
+                # API tools từ auto-scanner
+                try:
+                    from services.advisor.tools.api_tool import create_auto_api_tool
+                    return create_auto_api_tool(tool_name)
+                except Exception as e:
+                    logger.error(f"Failed to create API tool {tool_name}: {e}")
+                    return None
+                    
+            else:
+                logger.warning(f"Unknown tool type: {tool_type} for {tool_name}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Failed to create tool instance for {tool_name}: {e}")
+            return None
+
+    def _load_tools_from_config(self) -> List:
+        """Load tất cả tools từ config file"""
+        tools = []
+        
+        # 🆕 Load tool configs từ file
+        self.tool_configs = self._load_tool_configs_from_file()
+        
+        for tool_name, tool_config in self.tool_configs.items():
+            # Kiểm tra tool có được enable không
+            if not tool_config.get("enabled", True):
+                logger.debug(f"Tool {tool_name} is disabled, skipping")
+                continue
+            
+            # Tạo tool instance
+            tool_instance = self._create_tool_instance(tool_name, tool_config)
+            if tool_instance:
+                self.tool_instances[tool_name] = tool_instance
+                tools.append(tool_instance)
+                logger.info(f"✅ Loaded tool: {tool_name} (type: {tool_config.get('type')})")
+            else:
+                logger.error(f"❌ Failed to load tool: {tool_name}")
+        
+        logger.info(f"Total tools loaded: {len(tools)}")
+        return tools
+
+    def _should_refresh_tools(self) -> bool:
+        """Kiểm tra xem có cần refresh tools không"""
+        import time
+        current_time = time.time()
+        return (current_time - self.last_config_check) > self.config_check_interval
+
+    def _refresh_tools_if_needed(self):
+        """Refresh tools nếu cần thiết"""
+        if self._should_refresh_tools():
+            logger.debug("Checking for tool config updates...")
+            self._load_tools_from_config()
+            self.last_config_check = time.time()
+
     def initialize(self):
         """Initialize the agent with the current configuration"""
         if self.is_initialized:
@@ -83,8 +179,9 @@ class AgentAdvisor:
             self.temperature = agent_config.model.temperature
             self.max_tokens = agent_config.model.max_tokens
             self.prompt = agent_config.system_prompt
-            self.enabled_tools = agent_config.tools or ["google_search", "scraper_content"]
-            logger.info(f"Loaded configuration for agent {self.agent_id}. Enabled: {self.is_enabled}")
+            
+            # 🆕 KHÔNG hard-code tools nữa - lấy từ config
+            logger.info(f"Loading tools from configuration file...")
 
             # Initialize the LLM
             api_key = config_manager.settings.agent_config.model.api_key
@@ -102,13 +199,11 @@ class AgentAdvisor:
             )
             logger.info(f"Initialized ChatGroq with model {self.model_name}")
 
-            # Initialize tools
-            self.tools = []
-            if "google_search" in self.enabled_tools:
-                self.tools.append(GoogleSearchTool())
-            if "scraper_content" in self.enabled_tools:
-                self.tools.append(ScraperContentTool())
-            logger.info(f"Initialized tools: {[tool.name for tool in self.tools]}")
+            # 🆕 Load tools từ config file
+            self.tools = self._load_tools_from_config()
+            
+            if not self.tools:
+                logger.warning("No tools loaded from configuration. Agent may not function properly.")
 
             # Build the agent
             if not self.llm:
@@ -120,7 +215,7 @@ class AgentAdvisor:
                 tools=self.tools,
                 prompt=self.prompt
             )
-            logger.info(f"Built agent {self.agent_id} with configuration")
+            logger.info(f"Built agent {self.agent_id} with {len(self.tools)} tools")
 
             self.is_initialized = True
             logger.info(f"Agent {self.agent_id} initialized successfully")
@@ -137,13 +232,15 @@ class AgentAdvisor:
 
         try:
             # Clean up tools
-            for tool in self.tools:
+            for tool_name, tool in self.tool_instances.items():
                 if hasattr(tool, 'close') and callable(tool.close):
                     try:
                         tool.close()
                     except Exception as e:
-                        logger.error(f"Error closing tool {tool.name}: {e}")
+                        logger.error(f"Error closing tool {tool_name}: {e}")
 
+            self.tool_instances.clear()
+            self.tools.clear()
             self.agent = None
             self.is_initialized = False
             logger.info(f"Agent {self.agent_id} shutdown complete")
@@ -153,12 +250,6 @@ class AgentAdvisor:
     def invoke(self, messages: Union[List[Dict[str, str]], Dict[str, List[Dict[str, str]]]]):
         """
         Invoke the agent with the given messages.
-
-        Args:
-            messages: Either a list of message dictionaries or a dictionary with a 'messages' key
-
-        Returns:
-            The agent's response
         """
         # Check if agent is enabled and initialized
         if not self.is_enabled:
@@ -169,6 +260,9 @@ class AgentAdvisor:
             logger.warning("Agent is not initialized. Attempting to initialize...")
             if not self.initialize():
                 return {"output": "Agent could not be initialized. Please check the logs."}
+
+        #  Auto-refresh tools nếu cần
+        self._refresh_tools_if_needed()
 
         try:
             # Prepare input
@@ -209,7 +303,65 @@ class AgentAdvisor:
             "initialized": self.is_initialized,
             "has_agent": self.agent is not None,
             "model": self.model_name,
-            "tools": self.enabled_tools
+            "total_tools": len(self.tools),
+            "tool_details": self._get_tool_details()
+        }
+
+    def _get_tool_details(self) -> Dict[str, Any]:
+        """Get detailed information về tools"""
+        tool_details = {}
+        
+        for tool_name, tool_config in self.tool_configs.items():
+            tool_details[tool_name] = {
+                "type": tool_config.get("type"),
+                "enabled": tool_config.get("enabled", True),
+                "description": tool_config.get("description", ""),
+                "category": tool_config.get("category", "unknown"),
+                "loaded": tool_name in self.tool_instances,
+                "dependencies": tool_config.get("dependencies", [])
+            }
+        
+        return tool_details
+
+    def refresh_tools(self) -> bool:
+        """Manually refresh tools từ config file"""
+        try:
+            logger.info("Manually refreshing tools from configuration...")
+            old_tools_count = len(self.tools)
+            
+            # Reload tools
+            self.tools = self._load_tools_from_config()
+            
+            # Rebuild agent với tools mới
+            if self.llm:
+                self.agent = create_react_agent(
+                    model=self.llm,
+                    tools=self.tools,
+                    prompt=self.prompt
+                )
+                logger.info(f"Tools refreshed: {old_tools_count} -> {len(self.tools)}")
+                return True
+        except Exception as e:
+            logger.error(f"Failed to refresh tools: {e}")
+            return False
+
+    def get_tool_info(self, tool_name: str = None) -> Dict[str, Any]:
+        """Get detailed information về tool cụ thể hoặc tất cả tools"""
+        if tool_name:
+            if tool_name in self.tool_configs:
+                return {
+                    "config": self.tool_configs[tool_name],
+                    "instance": tool_name in self.tool_instances,
+                    "status": "loaded" if tool_name in self.tool_instances else "not_loaded"
+                }
+            else:
+                return {"error": f"Tool {tool_name} not found in configuration"}
+        
+        return {
+            "total_tools": len(self.tools),
+            "loaded_tools": list(self.tool_instances.keys()),
+            "config_tools": list(self.tool_configs.keys()),
+            "tool_details": self._get_tool_details()
         }
 
 

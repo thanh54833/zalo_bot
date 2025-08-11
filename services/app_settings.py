@@ -14,10 +14,12 @@ class ToolConfig(BaseSettings):
     type: str
     enabled: bool = True
     description: str
-    curl: str
+    curl: Optional[str] = None  # Optional for web tools, required for API tools
     input: Dict[str, Any]
-    header: Dict[str, str]
+    header: Optional[Dict[str, str]] = None  # Optional for web tools, required for API tools
     output: Dict[str, Any]
+    dependencies: Optional[List[str]] = None  # For web tools
+    category: Optional[str] = None  # For web tools
 
 class ModelConfig(BaseSettings):
     provider: str = "groq"

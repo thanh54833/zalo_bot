@@ -4,239 +4,117 @@
     "system_prompt": "You are a helpful Zalo assistant.",
     "tools": [
       {
-        "name": "update_product",
-        "type": "api_tool",
+        "name": "google_search",
+        "type": "web_search",
         "enabled": true,
-        "description": "Cập nhật thông tin sản phẩm trong hệ thống",
-        "curl": "curl -X 'PUT' 'http://127.0.0.1:8000/api/testing/api_3?update_inventory=true&notify_supplier=false&priority=high&batch_id=BATCH_20240115_001&dry_run=false&include_analytics=true&return_previous_state=false&validate_only=false' -H 'accept: application/json' -H 'X-Store-ID: STORE_HCM_001' -H 'X-Merchant-Key: merchant_key_xyz789_secure' -H 'X-Client-Version: 2.1.5' -H 'X-Request-ID: req_20240115_001' -H 'X-User-Agent: MobileApp/2.1.5' -H 'X-Timezone: Asia/Ho_Chi_Minh' -H 'X-Language: vi' -H 'Content-Type: application/json' -d '{\"product_id\": \"prod_001\", \"name\": \"iPhone 15 Pro Max\", \"price\": 29990000, \"category\": \"Electronics\", \"in_stock\": true, \"description\": \"Latest iPhone with advanced camera system\", \"tags\": [\"smartphone\", \"apple\", \"5G\", \"camera\"], \"weight\": 221, \"dimensions\": {\"length\": 159.9, \"width\": 76.7, \"height\": 8.25}, \"supplier_info\": {\"supplier_id\": \"SUP_001\", \"name\": \"Apple Inc.\", \"contact\": \"+1-800-275-2273\"}}'",
+        "description": "Tìm kiếm thông tin trên web thông qua Google",
         "input": {
           "param": {
-            "update_inventory": {
-              "type": "boolean",
-              "required": false,
-              "default": true,
-              "description": "Whether to update inventory levels"
-            },
-            "notify_supplier": {
-              "type": "boolean",
-              "required": false,
-              "default": false,
-              "description": "Send notification to supplier"
-            },
-            "priority": {
-              "type": "string",
-              "required": false,
-              "default": "normal",
-              "description": "Update priority level (low/normal/high/urgent)"
-            },
-            "batch_id": {
-              "type": "string",
-              "required": false,
-              "description": "Batch update identifier"
-            },
-            "dry_run": {
-              "type": "boolean",
-              "required": false,
-              "default": false,
-              "description": "Simulate update without making changes"
-            },
-            "include_analytics": {
-              "type": "boolean",
-              "required": false,
-              "default": true,
-              "description": "Include analytics data in response"
-            },
-            "return_previous_state": {
-              "type": "boolean",
-              "required": false,
-              "default": false,
-              "description": "Return previous product state"
-            },
-            "validate_only": {
-              "type": "boolean",
-              "required": false,
-              "default": false,
-              "description": "Validate data without updating"
-            }
-          },
-          "body": {
-            "product_id": {
+            "query": {
               "type": "string",
               "required": true,
-              "description": "ID duy nhất của sản phẩm cần cập nhật"
+              "description": "Từ khóa tìm kiếm"
             },
-            "name": {
-              "type": "string",
-              "required": true,
-              "description": "Tên sản phẩm"
+            "num_results": {
+              "type": "integer",
+              "required": false,
+              "default": 5,
+              "description": "Số lượng kết quả trả về"
             },
-            "price": {
-              "type": "number",
-              "required": true,
-              "description": "Giá sản phẩm (số thực)"
-            },
-            "category": {
-              "type": "string",
-              "required": true,
-              "description": "Danh mục sản phẩm"
-            },
-            "in_stock": {
-              "type": "boolean",
-              "required": true,
-              "description": "Trạng thái còn hàng (true: còn hàng, false: hết hàng)"
-            },
-            "description": {
+            "lang": {
               "type": "string",
               "required": false,
-              "description": "Mô tả chi tiết sản phẩm"
-            },
-            "tags": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "required": false,
-              "description": "Danh sách tags của sản phẩm"
-            },
-            "weight": {
-              "type": "number",
-              "required": false,
-              "description": "Trọng lượng sản phẩm (gram)"
-            },
-            "dimensions": {
-              "type": "object",
-              "properties": {
-                "length": {"type": "number", "description": "Chiều dài (mm)"},
-                "width": {"type": "number", "description": "Chiều rộng (mm)"},
-                "height": {"type": "number", "description": "Chiều cao (mm)"}
-              },
-              "required": false,
-              "description": "Kích thước sản phẩm"
-            },
-            "supplier_info": {
-              "type": "object",
-              "properties": {
-                "supplier_id": {"type": "string", "description": "ID nhà cung cấp"},
-                "name": {"type": "string", "description": "Tên nhà cung cấp"},
-                "contact": {"type": "string", "description": "Thông tin liên hệ"}
-              },
-              "required": false,
-              "description": "Thông tin nhà cung cấp"
+              "default": "vi",
+              "description": "Ngôn ngữ tìm kiếm (vi: tiếng Việt, en: tiếng Anh)"
             }
           }
         },
-        "header": {
-          "accept": "application/json",
-          "X-Store-ID": "STORE_HCM_001",
-          "X-Merchant-Key": "merchant_key_xyz789_secure",
-          "Content-Type": "application/json",
-          "X-Client-Version": "2.1.5",
-          "X-Request-ID": "req_20240115_001",
-          "X-User-Agent": "MobileApp/2.1.5",
-          "X-Timezone": "Asia/Ho_Chi_Minh",
-          "X-Language": "vi"
-        },
         "output": {
           "type": "object",
-          "description": "Kết quả cập nhật sản phẩm bao gồm trạng thái thành công và thông tin sản phẩm đã cập nhật",
+          "description": "Kết quả tìm kiếm từ Google",
           "fields": [
             {
               "key": "success",
               "type": "boolean",
-              "description": "Trạng thái thành công của yêu cầu cập nhật sản phẩm"
+              "description": "Trạng thái thành công của tìm kiếm"
             },
             {
-              "key": "message",
+              "key": "results",
+              "type": "array",
+              "description": "Danh sách kết quả tìm kiếm",
+              "items": {
+                "title": {"type": "string", "description": "Tiêu đề trang web"},
+                "url": {"type": "string", "description": "Đường dẫn URL"},
+                "description": {"type": "string", "description": "Mô tả nội dung"}
+              }
+            },
+            {
+              "key": "query",
               "type": "string",
-              "description": "Thông báo kết quả cập nhật sản phẩm"
+              "description": "Từ khóa đã tìm kiếm"
             },
             {
-              "key": "data.updated_product.product_id",
-              "type": "string",
-              "description": "ID duy nhất của sản phẩm đã cập nhật"
-            },
-            {
-              "key": "data.updated_product.name",
-              "type": "string",
-              "description": "Tên sản phẩm đã cập nhật"
-            },
-            {
-              "key": "data.updated_product.price",
-              "type": "number",
-              "description": "Giá sản phẩm đã cập nhật (số thực)"
-            },
-            {
-              "key": "data.updated_product.category",
-              "type": "string",
-              "description": "Danh mục sản phẩm đã cập nhật"
-            },
-            {
-              "key": "data.updated_product.in_stock",
-              "type": "boolean",
-              "description": "Trạng thái còn hàng của sản phẩm"
-            },
-            {
-              "key": "data.updated_product.last_updated",
-              "type": "string",
-              "description": "Thời gian cập nhật sản phẩm gần nhất (ISO format)"
-            },
-            {
-              "key": "data.updated_product.store_id",
-              "type": "string",
-              "description": "ID cửa hàng chứa sản phẩm"
-            },
-            {
-              "key": "data.updated_product.sku",
-              "type": "string",
-              "description": "Mã SKU duy nhất của sản phẩm trong cửa hàng"
-            },
-            {
-              "key": "data.updated_product.status",
-              "type": "string",
-              "description": "Trạng thái cập nhật sản phẩm"
-            },
-            {
-              "key": "data.inventory_status.stock_level",
-              "type": "number",
-              "description": "Số lượng tồn kho hiện tại của sản phẩm"
-            },
-            {
-              "key": "data.inventory_status.reorder_point",
-              "type": "number",
-              "description": "Mức tồn kho tối thiểu để đặt hàng bổ sung"
-            },
-            {
-              "key": "data.inventory_status.last_restocked",
-              "type": "string",
-              "description": "Thời gian nhập hàng bổ sung gần nhất (ISO format)"
-            },
-            {
-              "key": "data.request_info.store_id",
-              "type": "string",
-              "description": "ID cửa hàng trong yêu cầu"
-            },
-            {
-              "key": "data.request_info.merchant_key_length",
-              "type": "number",
-              "description": "Độ dài của merchant key được sử dụng"
-            },
-            {
-              "key": "data.request_info.accept_header",
-              "type": "string",
-              "description": "Giá trị header Accept trong yêu cầu"
-            },
-            {
-              "key": "data.request_info.request_method",
-              "type": "string",
-              "description": "Phương thức HTTP của yêu cầu"
-            },
-            {
-              "key": "timestamp",
-              "type": "string",
-              "description": "Thời gian xử lý yêu cầu (ISO format)"
+              "key": "total_results",
+              "type": "integer",
+              "description": "Tổng số kết quả tìm thấy"
             }
           ]
-        }
+        },
+        "dependencies": ["googlesearch-python"],
+        "category": "search"
+      },
+      {
+        "name": "scraper_content",
+        "type": "web_search",
+        "enabled": true,
+        "description": "Trích xuất nội dung chính và tiêu đề từ danh sách URLs",
+        "input": {
+          "param": {
+            "urls": {
+              "type": "array",
+              "required": true,
+              "description": "Danh sách URLs cần trích xuất nội dung",
+              "items": {
+                "type": "string",
+                "description": "URL cần scrape"
+              }
+            }
+          }
+        },
+        "output": {
+          "type": "object",
+          "description": "Kết quả trích xuất nội dung từ URLs",
+          "fields": [
+            {
+              "key": "success",
+              "type": "boolean",
+              "description": "Trạng thái thành công của quá trình scrape"
+            },
+            {
+              "key": "results",
+              "type": "array",
+              "description": "Danh sách nội dung đã trích xuất",
+              "items": {
+                "url": {"type": "string", "description": "URL đã xử lý"},
+                "title": {"type": "string", "description": "Tiêu đề trang web"},
+                "content": {"type": "string", "description": "Nội dung chính đã làm sạch"},
+                "success": {"type": "boolean", "description": "Trạng thái xử lý URL này"}
+              }
+            },
+            {
+              "key": "total_urls",
+              "type": "integer",
+              "description": "Tổng số URLs đã xử lý"
+            },
+            {
+              "key": "successful_urls",
+              "type": "integer",
+              "description": "Số URLs xử lý thành công"
+            }
+          ]
+        },
+        "dependencies": ["aiohttp", "trafilatura"],
+        "category": "content_extraction"
       },
       {
         "name": "search_inventory",
