@@ -200,8 +200,8 @@
     ],
     "model": {
       "provider": "groq",
-      "name": "llama3-8b-8192",
-      "api_key": "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",
+      "name": "meta-llama/llama-4-scout-17b-16e-instruct",
+      "api_key": "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",
       "temperature": 0.7,
       "max_tokens": 2048
     }
