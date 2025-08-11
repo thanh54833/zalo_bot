@@ -1,0 +1,77 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+### Ghi nhớ dự án (memories)
+
+#### Mục tiêu
+- Xây dựng AI agent (Zalo assistant) hỗ trợ health check hệ thống và dùng các tool (web search, scraper, API).
+
+### Cấu trúc chính
+- `routers/agent_router.py`
+  - REST API cho agent:
+    - `GET /api/agent/status`
+    - `POST /api/agent/initialize`
+    - `POST /api/agent/shutdown`
+    - `POST /api/agent/reload`
+    - `POST /api/agent/invoke`
+    - `POST /api/agent/query`
+    - `GET /api/agent/health_check` (gọi agent để kiểm tra tổng thể)
+    - `GET /api/agent/health_status` (chỉ báo cáo trạng thái hệ thống, không gọi LLM)
+- `services/advisor/agent.py`
+  - Quản lý agent (khởi tạo LLM, load tools từ cấu hình, auto-refresh tools, invoke, status).
+  - Auto refresh tool config mỗi 30 giây khi `invoke` chạy; có `refresh_tools()` thủ công.
+  - Lấy API key CHỈ từ `data/app_config.json` (không dùng .env).
+- `services/app_settings.py`
+  - `ConfigManager` load/save bất đồng bộ cho `data/app_config.json`.
+  - Mô hình cấu hình: `AgentConfig` (prompt, tools, model), `ModelConfig`, `ToolConfig`, `ZaloConfig`.
+- `services/advisor/tools/`
+  - `google_search_tool.py`, `scraper_content_tool.py`, `api_tool.py` (auto-scan tạo API tools từ config).
+- `services/integrations.py`
+  - Tích hợp LangSmith (tùy chọn), thêm tracer và metadata khi bật.
+- `data/app_config.json`
+  - Single Source of Truth cho MỌI cấu hình (bao gồm secrets). Dùng để điều khiển model, tools, Zalo, v.v.
+
+### Quy tắc cấu hình (bắt buộc)
+- Tất cả biến cấu hình đặt trong `data/app_config.json`. Không sử dụng `.env`.
+- Đường dẫn khóa model:
+  - `agent_config.model.api_key`: khóa GROQ (ví dụ: `gsk_...`).
+- Sau khi chỉnh `data/app_config.json`, gọi `POST /api/agent/reload` để áp dụng.
+
+### Quy tắc phát triển
+- Không hard-code cấu hình; luôn đọc qua `config_manager.settings`.
+- Đặt tên rõ ràng, có nghĩa; tránh viết tắt. Hàm là động từ, biến là danh từ.
+- Ưu tiên guard clause, xử lý lỗi sớm; log bằng `logging` thay vì `print`.
+- Không dùng TODO nếu có thể; hãy triển khai ngay. Comment ngắn gọn, tập trung “tại sao”.
+- Giữ format nhất quán; không sửa format ngoài phạm vi thay đổi.
+
+### Hành vi API đáng chú ý
+- `POST /api/agent/reload`: rebuild agent với tools mới từ `app_config.json`. Dùng POST (GET sẽ 405).
+- `GET /api/agent/health_check`:
+  - Nếu `agent_config.model.api_key` trống: trả về hướng dẫn cấu hình, KHÔNG gọi LLM.
+  - Nếu có key nhưng sai: LLM có thể trả lỗi 401 trong `agent_response.output`.
+- `GET /api/agent/health_status`: chỉ trả trạng thái hệ thống và tools, không phụ thuộc LLM.
+
+### Tools
+- Định nghĩa tools trong `agent_config.tools` của `data/app_config.json`.
+  - `type`: `web_search` hoặc `api_tool`.
+  - `enabled`: bật/tắt tool.
+  - `api_tool` được auto-scan và sinh tool động từ config.
+- Auto-refresh: mỗi ~30s khi chạy `invoke`; hoặc dùng `POST /api/agent/reload` để cập nhật ngay.
+
+### Bảo mật
+- Vì cấu hình (kể cả secrets) nằm ở `data/app_config.json`, tránh commit khóa thật lên repo public.
+  - Nếu cần chia sẻ, dùng khóa giả trong repo; lưu khóa thật cục bộ; đảm bảo repo private.
+  - Thay khóa mới nếu nghi ngờ lộ lọt.
+
+### Quy trình nhanh
+1. Mở `data/app_config.json` và cập nhật `agent_config.model.api_key` bằng khóa GROQ hợp lệ.
+2. Khởi động server FastAPI.
+3. Gọi `POST /api/agent/reload` để áp dụng cấu hình.
+4. Kiểm tra `GET /api/agent/health_check` và `GET /api/agent/health_status`.
+
+### Lưu ý/Gotchas
+- Thiếu `import time` trong agent sẽ gây lỗi; đã được thêm `import time` ở `services/advisor/agent.py`.
+- `health_check` có thể báo 401 nếu key sai; đây là mong đợi liên quan xác thực LLM.
+- Có thể tách phần “kiểm tra agent” khỏi `health_check` nếu muốn endpoint này luôn 200.

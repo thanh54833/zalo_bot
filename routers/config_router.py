@@ -3,7 +3,6 @@ from typing import Dict, Any
 import logging
 
 from services.app_settings import config_manager, AppSettings
-from services.advisor import agent_advisor
 from services.zalo import get_bot_instance, ZaloBot
 from routers.zalo_personal_router import manage_zalo_personal_bot
 

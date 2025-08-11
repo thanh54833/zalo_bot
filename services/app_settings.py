@@ -9,6 +9,20 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # --- Nested Config Models ---
 
+class ToolConfig(BaseSettings):
+    name: str
+    type: str
+    enabled: bool = True
+    description: str
+    curl: Optional[str] = None  # Optional for web tools, required for API tools
+    input: Dict[str, Any]
+    header: Optional[Dict[str, str]] = None  # Optional for web tools, required for API tools
+    output: Dict[str, Any]
+    dependencies: Optional[List[str]] = None  # For web tools
+    category: Optional[str] = None  # For web tools
+    max_concurrent: Optional[int] = None  # For web tools that support concurrent processing
+    headers: Optional[Dict[str, str]] = None  # For web tools that need custom headers
+
 class ModelConfig(BaseSettings):
     provider: str = "groq"
     name: str = "llama3-8b-8192"
@@ -19,7 +33,7 @@ class ModelConfig(BaseSettings):
 class AgentConfig(BaseSettings):
     enabled: bool = True
     system_prompt: str = "You are a helpful Zalo assistant."
-    tools: List[str] = Field(default_factory=list)
+    tools: List[ToolConfig] = Field(default_factory=list)
     model: ModelConfig = Field(default_factory=ModelConfig)
 
 

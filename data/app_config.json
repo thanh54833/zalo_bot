@@ -1,8 +1,203 @@
 {
   "agent_config": {
     "enabled": true,
-    "system_prompt": "You are a helpful Zalo assistant.",
-    "tools": [],
+    "system_prompt": "You are a Zalo assistant specialized in system health monitoring and tool testing. Your primary function is to perform comprehensive health checks on available tools and provide detailed status reports. \n\n**Health Check Process:**\n1. **Tool Discovery**: Scan and list all available tools from the configuration\n2. **Status Verification**: Check enabled/disabled status and dependencies\n3. **Connectivity Testing**: Test each tool's connection and response time\n4. **Response Validation**: Verify tool responses match expected schemas\n5. **Health Reporting**: Generate comprehensive health status reports\n\n**Available Tools to Monitor:**\n- google_search: Web search functionality via Google\n- scraper_content: Content extraction from URLs  \n- search_inventory: Product inventory search API\n\n**Health Check Commands:**\n- /health_check: Perform full system health check\n- /tool_status: Show current tool status\n- /test_tool [tool_name]: Test specific tool functionality\n- /health_report: Generate detailed health report\n\nAlways provide clear status indicators (✅ Healthy, ⚠️ Warning, ❌ Error) and actionable recommendations for any issues found.",
+    "tools": [
+      {
+        "name": "google_search",
+        "type": "web_search",
+        "enabled": true,
+        "description": "Tìm kiếm thông tin trên web thông qua Google",
+        "input": {
+          "param": {
+            "query": {
+              "type": "string",
+              "required": true,
+              "description": "Từ khóa tìm kiếm"
+            },
+            "num_results": {
+              "type": "integer",
+              "required": false,
+              "default": 5,
+              "description": "Số lượng kết quả trả về"
+            },
+            "lang": {
+              "type": "string",
+              "required": false,
+              "default": "vi",
+              "description": "Ngôn ngữ tìm kiếm (vi: tiếng Việt, en: tiếng Anh)"
+            }
+          }
+        },
+        "output": {
+          "type": "object",
+          "description": "Kết quả tìm kiếm từ Google",
+          "fields": [
+            {
+              "key": "success",
+              "type": "boolean",
+              "description": "Trạng thái thành công của tìm kiếm"
+            },
+            {
+              "key": "results",
+              "type": "array",
+              "description": "Danh sách kết quả tìm kiếm",
+              "items": {
+                "title": {"type": "string", "description": "Tiêu đề trang web"},
+                "url": {"type": "string", "description": "Đường dẫn URL"},
+                "description": {"type": "string", "description": "Mô tả nội dung"}
+              }
+            },
+            {
+              "key": "query",
+              "type": "string",
+              "description": "Từ khóa đã tìm kiếm"
+            },
+            {
+              "key": "total_results",
+              "type": "integer",
+              "description": "Tổng số kết quả tìm thấy"
+            }
+          ]
+        },
+        "dependencies": ["googlesearch-python"],
+        "category": "search"
+      },
+      {
+        "name": "scraper_content",
+        "type": "web_search",
+        "enabled": true,
+        "description": "Trích xuất nội dung chính và tiêu đề từ danh sách URLs",
+        "max_concurrent": 10,
+        "headers": {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        },
+        "input": {
+          "param": {
+            "urls": {
+              "type": "array",
+              "required": true,
+              "description": "Danh sách URLs cần trích xuất nội dung",
+              "items": {
+                "type": "string",
+                "description": "URL cần scrape"
+              }
+            }
+          }
+        },
+        "output": {
+          "type": "object",
+          "description": "Kết quả trích xuất nội dung từ URLs",
+          "fields": [
+            {
+              "key": "success",
+              "type": "boolean",
+              "description": "Trạng thái thành công của quá trình scrape"
+            },
+            {
+              "key": "results",
+              "type": "array",
+              "description": "Danh sách nội dung đã trích xuất",
+              "items": {
+                "url": {"type": "string", "description": "URL đã xử lý"},
+                "title": {"type": "string", "description": "Tiêu đề trang web"},
+                "content": {"type": "string", "description": "Nội dung chính đã làm sạch"},
+                "success": {"type": "boolean", "description": "Trạng thái xử lý URL này"}
+              }
+            },
+            {
+              "key": "total_urls",
+              "type": "integer",
+              "description": "Tổng số URLs đã xử lý"
+            },
+            {
+              "key": "successful_urls",
+              "type": "integer",
+              "description": "Số URLs xử lý thành công"
+            }
+          ]
+        },
+        "dependencies": ["aiohttp", "trafilatura"],
+        "category": "content_extraction"
+      },
+      {
+        "name": "search_inventory",
+        "type": "api_tool",
+        "enabled": true,
+        "description": "Tìm kiếm sản phẩm trong kho theo tên sản phẩm và quận/huyện",
+        "curl": "curl -X 'GET' 'http://127.0.0.1:8000/api/testing/inventory?product_name=iPhone%2015&district=Qu%E1%BA%ADn%201' -H 'accept: application/json'",
+        "input": {
+          "param": {
+            "product_name": {
+              "type": "string",
+              "required": true,
+              "description": "Tên sản phẩm cần tìm kiếm"
+            },
+            "district": {
+              "type": "string",
+              "required": true,
+              "description": "Tên quận/huyện để tìm kiếm sản phẩm"
+            }
+          }
+        },
+        "header": {
+          "accept": "application/json"
+        },
+        "output": {
+          "type": "object",
+          "description": "Kết quả tìm kiếm sản phẩm trong kho theo tên và quận",
+          "fields": [
+            {
+              "key": "success",
+              "type": "boolean",
+              "description": "Trạng thái thành công của yêu cầu tìm kiếm"
+            },
+            {
+              "key": "message",
+              "type": "string",
+              "description": "Thông báo kết quả tìm kiếm"
+            },
+            {
+              "key": "data.search_query.product_name",
+              "type": "string",
+              "description": "Tên sản phẩm đã tìm kiếm"
+            },
+            {
+              "key": "data.search_query.district",
+              "type": "string",
+              "description": "Quận/huyện đã tìm kiếm"
+            },
+            {
+              "key": "data.results_count",
+              "type": "number",
+              "description": "Số lượng sản phẩm tìm thấy"
+            },
+            {
+              "key": "data.products",
+              "type": "array",
+              "description": "Danh sách sản phẩm tìm thấy",
+              "items": {
+                "product_id": {"type": "string", "description": "ID duy nhất của sản phẩm"},
+                "name": {"type": "string", "description": "Tên sản phẩm"},
+                "category": {"type": "string", "description": "Danh mục sản phẩm"},
+                "price": {"type": "number", "description": "Giá sản phẩm (VND)"},
+                "currency": {"type": "string", "description": "Đơn vị tiền tệ"},
+                "stock_quantity": {"type": "number", "description": "Tổng số lượng trong kho"},
+                "available_quantity": {"type": "number", "description": "Số lượng có sẵn để bán"},
+                "warehouse_location": {"type": "string", "description": "Vị trí lưu trữ trong kho"},
+                "district": {"type": "string", "description": "Quận/huyện của kho"},
+                "warehouse_id": {"type": "string", "description": "ID của kho"}
+              }
+            },
+            {
+              "key": "timestamp",
+              "type": "string",
+              "description": "Thời gian xử lý yêu cầu (ISO format)"
+            }
+          ]
+        }
+      }
+    ],
     "model": {
       "provider": "groq",
       "name": "llama3-8b-8192",
@@ -17,7 +212,7 @@
       "secret_key": "NrGu0gUeiEnRrajtwPmF"
     },
     "personal": {
-      "enabled": true,
+      "enabled": false,
       "phone": "0559362614",
       "password": "Lumia520",
       "imei": "2bd94c6b-f25c-418b-8e26-adb12c47086b-84fb6a68ab92a6d30981c69a1117885c",
