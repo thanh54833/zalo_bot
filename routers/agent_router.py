@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Body
 from typing import Dict, Any, List
 from pydantic import BaseModel
 import datetime
+import os
 
 from services.app_settings import config_manager
 # Remove the direct import - we'll get it dynamically
@@ -202,15 +203,58 @@ async def agent_health_check():
         if agent_advisor is None:
             raise HTTPException(status_code=500, detail="Agent advisor not available")
 
+        # Resolve API key only from config file
+        api_key = config_manager.settings.agent_config.model.api_key
+
+        # If API key missing or obviously invalid, return actionable health info without invoking LLM
+        if not api_key or not api_key.strip():
+            health_response = {
+                "timestamp": datetime.datetime.now().isoformat(),
+                "agent_response": {
+                    "output": "LLM authentication not configured. Skipping agent invocation.",
+                    "error": {
+                        "code": "invalid_api_key",
+                        "message": "Missing GROQ API key. Update agent_config.model.api_key in data/app_config.json, then POST /api/agent/reload."
+                    }
+                },
+                "available_tools": [
+                    {
+                        "name": "google_search",
+                        "type": "web_search",
+                        "enabled": True,
+                        "description": "Web search functionality via Google"
+                    },
+                    {
+                        "name": "scraper_content",
+                        "type": "content_extraction",
+                        "enabled": True,
+                        "description": "Content extraction from URLs"
+                    },
+                    {
+                        "name": "search_inventory",
+                        "type": "api_tool",
+                        "enabled": True,
+                        "description": "Product inventory search API"
+                    }
+                ],
+                "system_status": {
+                    "agent_initialized": agent_advisor.is_initialized,
+                    "config_enabled": config_manager.settings.agent_config.enabled,
+                    "model_provider": config_manager.settings.agent_config.model.provider,
+                    "model_name": config_manager.settings.agent_config.model.name
+                }
+            }
+            return health_response
+
         # Create health check message for the agent
         health_message = {
-            "role": "user", 
+            "role": "user",
             "content": "HEALTH_CHECK_REQUEST: Please perform a comprehensive system health check. Analyze all available tools and provide detailed status reports with clear indicators (✅ Healthy, ⚠️ Warning, ❌ Error)."
         }
-        
+
         # Call the agent's invoke method with health check context
         response = agent_advisor.invoke([health_message])
-        
+
         # Add metadata to response
         health_response = {
             "timestamp": datetime.datetime.now().isoformat(),
@@ -218,18 +262,18 @@ async def agent_health_check():
             "available_tools": [
                 {
                     "name": "google_search",
-                    "type": "web_search", 
+                    "type": "web_search",
                     "enabled": True,
                     "description": "Web search functionality via Google"
                 },
                 {
                     "name": "scraper_content",
                     "type": "content_extraction",
-                    "enabled": True, 
+                    "enabled": True,
                     "description": "Content extraction from URLs"
                 },
                 {
-                    "name": "search_inventory", 
+                    "name": "search_inventory",
                     "type": "api_tool",
                     "enabled": True,
                     "description": "Product inventory search API"
@@ -242,9 +286,9 @@ async def agent_health_check():
                 "model_name": config_manager.settings.agent_config.model.name
             }
         }
-        
+
         return health_response
-        
+
     except Exception as e:
         logger.error(f"Error during health check: {e}", exc_info=True)
         raise HTTPException(
