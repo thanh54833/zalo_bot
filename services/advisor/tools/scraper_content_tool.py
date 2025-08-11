@@ -26,6 +26,12 @@ class ScraperContentTool(BaseConfigurableTool):
     NGHIÊM CẤM hard-code bất kỳ thông tin gì!
     """
     
+    # Define the fields that this tool needs
+    max_concurrent: int = 10
+    headers: Dict[str, str] = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+    
     def __init__(self, tool_config: Dict[str, Any]):
         # ✅ GỌI CONSTRUCTOR CHA VỚI CONFIG
         super().__init__(tool_config)
@@ -33,7 +39,7 @@ class ScraperContentTool(BaseConfigurableTool):
         # ✅ VALIDATE DEPENDENCIES
         self._validate_dependencies()
         
-        # ✅ SET CONFIGURABLE PROPERTIES
+        # ✅ SET CONFIGURABLE PROPERTIES - với default values
         self.max_concurrent = tool_config.get("max_concurrent", 10)
         self.headers = tool_config.get("headers", {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'

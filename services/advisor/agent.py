@@ -2,6 +2,7 @@ import logging
 from typing import List, Dict, Union, Any
 import os
 import asyncio
+import time
 
 from langchain_groq import ChatGroq
 from langgraph.prebuilt import create_react_agent
@@ -78,10 +79,12 @@ class AgentAdvisor:
             tools_config = {}
             
             for tool_config in agent_config.tools:
-                tool_name = tool_config.get("name")
+                # ✅ Access attributes directly since tool_config is a ToolConfig object
+                tool_name = tool_config.name
                 if tool_name:
-                    tools_config[tool_name] = tool_config
-                    logger.debug(f"Loaded tool config: {tool_name} (type: {tool_config.get('type')})")
+                    # Convert Pydantic model to dict for compatibility
+                    tools_config[tool_name] = tool_config.model_dump()
+                    logger.debug(f"Loaded tool config: {tool_name} (type: {tool_config.type})")
             
             logger.info(f"Loaded {len(tools_config)} tool configurations from file")
             return tools_config

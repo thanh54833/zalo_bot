@@ -20,6 +20,8 @@ class ToolConfig(BaseSettings):
     output: Dict[str, Any]
     dependencies: Optional[List[str]] = None  # For web tools
     category: Optional[str] = None  # For web tools
+    max_concurrent: Optional[int] = None  # For web tools that support concurrent processing
+    headers: Optional[Dict[str, str]] = None  # For web tools that need custom headers
 
 class ModelConfig(BaseSettings):
     provider: str = "groq"
