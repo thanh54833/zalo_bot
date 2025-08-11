@@ -456,174 +456,149 @@ async def get_test_summary():
 @router.get("/inventory")
 async def get_inventory(
     request: Request,
-    x_warehouse_id: str = Header(..., alias="X-Warehouse-ID", example="WH_HCM_001"),
-    x_manager_token: str = Header(..., alias="X-Manager-Token", example="manager_token_abc123"),
-    x_include_out_of_stock: str = Header("false", alias="X-Include-OutOfStock", example="true"),
-    category: Optional[str] = Query(None, example="Electronics", description="Filter by product category"),
-    min_price: Optional[float] = Query(None, example=1000000.0, description="Minimum price filter"),
-    max_price: Optional[float] = Query(None, example=50000000.0, description="Maximum price filter")
+    product_name: str = Query(..., example="iPhone 15", description="Tên sản phẩm cần tìm"),
+    district: str = Query(..., example="Quận 1", description="Tên quận/huyện")
 ):
     """
-    Testing API - Inventory Management
-    GET method for retrieving product inventory list
-    Simulates a warehouse inventory system
+    Testing API - Tìm kiếm sản phẩm theo tên và quận
+    GET method để tìm kiếm sản phẩm trong kho
     """
     try:
-        # Validate manager token
-        if x_manager_token != "manager_token_abc123":
-            raise HTTPException(status_code=403, detail="Invalid manager token")
+        # Dữ liệu mẫu các kho theo quận
+        warehouses = {
+            "Quận 1": "WH_Q1_001",
+            "Quận 2": "WH_Q2_001", 
+            "Quận 3": "WH_Q3_001",
+            "Quận 7": "WH_Q7_001",
+            "Quận 8": "WH_Q8_001",
+            "Quận 9": "WH_Q9_001",
+            "Quận 10": "WH_Q10_001",
+            "Quận 11": "WH_Q11_001",
+            "Quận 12": "WH_Q12_001",
+            "Quận Bình Tân": "WH_BT_001",
+            "Quận Tân Bình": "WH_TB_001",
+            "Quận Tân Phú": "WH_TP_001",
+            "Quận Phú Nhuận": "WH_PN_001",
+            "Quận Gò Vấp": "WH_GV_001",
+            "Quận Bình Thạnh": "WH_BT_002"
+        }
         
-        # Validate warehouse ID
-        valid_warehouses = ["WH_HCM_001", "WH_HN_002", "WH_DN_003"]
-        if x_warehouse_id not in valid_warehouses:
-            raise HTTPException(status_code=404, detail="Warehouse not found")
+        # Kiểm tra quận có hợp lệ không
+        if district not in warehouses:
+            raise HTTPException(status_code=400, detail=f"Quận '{district}' không được hỗ trợ")
         
-        # Generate fake product inventory
-        include_out_of_stock = x_include_out_of_stock.lower() == "true"
+        warehouse_id = warehouses[district]
         
+        # Dữ liệu sản phẩm mẫu
         all_products = [
             {
                 "product_id": "prod_001",
-                "sku": f"SKU-001-{x_warehouse_id}",
                 "name": "iPhone 15 Pro Max",
-                "category": "Electronics",
-                "price": 29990000.0,
+                "category": "Điện thoại",
+                "price": 29990000,
                 "currency": "VND",
                 "stock_quantity": 45,
-                "reserved_quantity": 5,
                 "available_quantity": 40,
                 "warehouse_location": "A1-B2-C3",
-                "last_updated": "2024-01-15T08:30:00Z",
-                "supplier": "Apple Vietnam",
-                "cost_price": 25000000.0,
-                "margin_percent": 19.96
+                "district": "Quận 1",
+                "warehouse_id": warehouse_id
             },
             {
-                "product_id": "prod_002",
-                "sku": f"SKU-002-{x_warehouse_id}",
-                "name": "AirPods Pro",
-                "category": "Electronics",
-                "price": 6490000.0,
+                "product_id": "prod_002", 
+                "name": "iPhone 15",
+                "category": "Điện thoại",
+                "price": 19990000,
                 "currency": "VND",
                 "stock_quantity": 120,
-                "reserved_quantity": 10,
                 "available_quantity": 110,
                 "warehouse_location": "A2-B1-C5",
-                "last_updated": "2024-01-15T09:15:00Z",
-                "supplier": "Apple Vietnam",
-                "cost_price": 5200000.0,
-                "margin_percent": 24.84
+                "district": "Quận 1",
+                "warehouse_id": warehouse_id
             },
             {
                 "product_id": "prod_003",
-                "sku": f"SKU-003-{x_warehouse_id}",
-                "name": "Samsung Galaxy S24 Ultra",
-                "category": "Electronics",
-                "price": 32990000.0,
+                "name": "Samsung Galaxy S24",
+                "category": "Điện thoại", 
+                "price": 22990000,
                 "currency": "VND",
-                "stock_quantity": 0,
-                "reserved_quantity": 0,
-                "available_quantity": 0,
+                "stock_quantity": 30,
+                "available_quantity": 25,
                 "warehouse_location": "A1-B3-C1",
-                "last_updated": "2024-01-14T16:45:00Z",
-                "supplier": "Samsung Vietnam",
-                "cost_price": 28000000.0,
-                "margin_percent": 17.82,
-                "status": "out_of_stock",
-                "expected_restock": "2024-01-20T00:00:00Z"
+                "district": "Quận 2",
+                "warehouse_id": "WH_Q2_001"
             },
             {
                 "product_id": "prod_004",
-                "sku": f"SKU-004-{x_warehouse_id}",
-                "name": "MacBook Pro 14 inch M3",
-                "category": "Computers",
-                "price": 54990000.0,
-                "currency": "VND",
+                "name": "MacBook Pro 14 inch",
+                "category": "Laptop",
+                "price": 54990000,
+                "currency": "VND", 
                 "stock_quantity": 15,
-                "reserved_quantity": 2,
                 "available_quantity": 13,
                 "warehouse_location": "B1-C2-D1",
-                "last_updated": "2024-01-15T07:20:00Z",
-                "supplier": "Apple Vietnam",
-                "cost_price": 46000000.0,
-                "margin_percent": 19.54
+                "district": "Quận 7",
+                "warehouse_id": "WH_Q7_001"
             },
             {
                 "product_id": "prod_005",
-                "sku": f"SKU-005-{x_warehouse_id}",
-                "name": "Dell XPS 13 Plus",
-                "category": "Computers",
-                "price": 35990000.0,
+                "name": "AirPods Pro",
+                "category": "Tai nghe",
+                "price": 6490000,
                 "currency": "VND",
-                "stock_quantity": 0,
-                "reserved_quantity": 0,
-                "available_quantity": 0,
+                "stock_quantity": 80,
+                "available_quantity": 75,
                 "warehouse_location": "B2-C1-D3",
-                "last_updated": "2024-01-13T14:30:00Z",
-                "supplier": "Dell Vietnam",
-                "cost_price": 30000000.0,
-                "margin_percent": 19.97,
-                "status": "out_of_stock",
-                "expected_restock": "2024-01-25T00:00:00Z"
+                "district": "Quận 3",
+                "warehouse_id": "WH_Q3_001"
             }
         ]
         
-        # Filter products based on parameters
-        filtered_products = all_products
+        # Tìm kiếm sản phẩm theo tên (không phân biệt hoa thường)
+        search_results = []
+        product_name_lower = product_name.lower()
         
-        # Filter by category
-        if category:
-            filtered_products = [p for p in filtered_products if p["category"].lower() == category.lower()]
+        for product in all_products:
+            if product_name_lower in product["name"].lower():
+                # Nếu sản phẩm có trong quận được chọn
+                if product["district"] == district:
+                    search_results.append(product)
+                # Hoặc nếu không chỉ định quận cụ thể, trả về tất cả
+                elif district == "Tất cả":
+                    search_results.append(product)
         
-        # Filter by price range
-        if min_price is not None:
-            filtered_products = [p for p in filtered_products if p["price"] >= min_price]
-        if max_price is not None:
-            filtered_products = [p for p in filtered_products if p["price"] <= max_price]
+        # Nếu không tìm thấy sản phẩm nào
+        if not search_results:
+            return ApiResponse(
+                success=True,
+                message=f"Không tìm thấy sản phẩm '{product_name}' trong quận '{district}'",
+                data={
+                    "search_query": {
+                        "product_name": product_name,
+                        "district": district
+                    },
+                    "results_count": 0,
+                    "products": []
+                },
+                timestamp=datetime.now().isoformat()
+            )
         
-        # Filter out of stock products if not requested
-        if not include_out_of_stock:
-            filtered_products = [p for p in filtered_products if p["available_quantity"] > 0]
-        
-        # Calculate inventory statistics
-        total_products = len(filtered_products)
-        total_stock_value = sum(p["stock_quantity"] * p["cost_price"] for p in filtered_products)
-        out_of_stock_count = len([p for p in filtered_products if p["available_quantity"] == 0])
-        low_stock_count = len([p for p in filtered_products if 0 < p["available_quantity"] <= 10])
-        
-        response_data = {
-            "inventory_summary": {
-                "warehouse_id": x_warehouse_id,
-                "total_products": total_products,
-                "out_of_stock_products": out_of_stock_count,
-                "low_stock_products": low_stock_count,
-                "total_stock_value": total_stock_value,
-                "currency": "VND",
-                "last_sync": datetime.now().isoformat()
-            },
-            "products": filtered_products,
-            "filters_applied": {
-                "category": category,
-                "min_price": min_price,
-                "max_price": max_price,
-                "include_out_of_stock": include_out_of_stock
-            },
-            "request_info": {
-                "warehouse_id": x_warehouse_id,
-                "manager_token_valid": True,
-                "request_timestamp": datetime.now().isoformat()
-            }
-        }
-        
+        # Trả về kết quả tìm kiếm
         return ApiResponse(
             success=True,
-            message=f"Inventory retrieved successfully for warehouse {x_warehouse_id}",
-            data=response_data,
+            message=f"Tìm thấy {len(search_results)} sản phẩm '{product_name}' trong quận '{district}'",
+            data={
+                "search_query": {
+                    "product_name": product_name,
+                    "district": district
+                },
+                "results_count": len(search_results),
+                "products": search_results
+            },
             timestamp=datetime.now().isoformat()
         )
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in inventory API: {e}")
+        logger.error(f"Lỗi trong API inventory: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 

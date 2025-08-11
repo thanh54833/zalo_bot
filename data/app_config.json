@@ -237,6 +237,83 @@
             }
           ]
         }
+      },
+      {
+        "name": "search_inventory",
+        "type": "api_tool",
+        "enabled": true,
+        "description": "Tìm kiếm sản phẩm trong kho theo tên sản phẩm và quận/huyện",
+        "curl": "curl -X 'GET' 'http://127.0.0.1:8000/api/testing/inventory?product_name=iPhone%2015&district=Qu%E1%BA%ADn%201' -H 'accept: application/json'",
+        "input": {
+          "param": {
+            "product_name": {
+              "type": "string",
+              "required": true,
+              "description": "Tên sản phẩm cần tìm kiếm"
+            },
+            "district": {
+              "type": "string",
+              "required": true,
+              "description": "Tên quận/huyện để tìm kiếm sản phẩm"
+            }
+          }
+        },
+        "header": {
+          "accept": "application/json"
+        },
+        "output": {
+          "type": "object",
+          "description": "Kết quả tìm kiếm sản phẩm trong kho theo tên và quận",
+          "fields": [
+            {
+              "key": "success",
+              "type": "boolean",
+              "description": "Trạng thái thành công của yêu cầu tìm kiếm"
+            },
+            {
+              "key": "message",
+              "type": "string",
+              "description": "Thông báo kết quả tìm kiếm"
+            },
+            {
+              "key": "data.search_query.product_name",
+              "type": "string",
+              "description": "Tên sản phẩm đã tìm kiếm"
+            },
+            {
+              "key": "data.search_query.district",
+              "type": "string",
+              "description": "Quận/huyện đã tìm kiếm"
+            },
+            {
+              "key": "data.results_count",
+              "type": "number",
+              "description": "Số lượng sản phẩm tìm thấy"
+            },
+            {
+              "key": "data.products",
+              "type": "array",
+              "description": "Danh sách sản phẩm tìm thấy",
+              "items": {
+                "product_id": {"type": "string", "description": "ID duy nhất của sản phẩm"},
+                "name": {"type": "string", "description": "Tên sản phẩm"},
+                "category": {"type": "string", "description": "Danh mục sản phẩm"},
+                "price": {"type": "number", "description": "Giá sản phẩm (VND)"},
+                "currency": {"type": "string", "description": "Đơn vị tiền tệ"},
+                "stock_quantity": {"type": "number", "description": "Tổng số lượng trong kho"},
+                "available_quantity": {"type": "number", "description": "Số lượng có sẵn để bán"},
+                "warehouse_location": {"type": "string", "description": "Vị trí lưu trữ trong kho"},
+                "district": {"type": "string", "description": "Quận/huyện của kho"},
+                "warehouse_id": {"type": "string", "description": "ID của kho"}
+              }
+            },
+            {
+              "key": "timestamp",
+              "type": "string",
+              "description": "Thời gian xử lý yêu cầu (ISO format)"
+            }
+          ]
+        }
       }
     ],
     "model": {
