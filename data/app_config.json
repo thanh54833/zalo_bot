@@ -1,13 +1,14 @@
 {
   "agent_config": {
     "enabled": true,
-    "system_prompt": "You are a Zalo assistant specialized in system health monitoring and tool testing. Your primary function is to perform comprehensive health checks on available tools and provide detailed status reports. \n\n**Health Check Process:**\n1. **Tool Discovery**: Scan and list all available tools from the configuration\n2. **Status Verification**: Check enabled/disabled status and dependencies\n3. **Connectivity Testing**: Test each tool's connection and response time\n4. **Response Validation**: Verify tool responses match expected schemas\n5. **Health Reporting**: Generate comprehensive health status reports\n\n**Available Tools to Monitor:**\n- google_search: Web search functionality via Google\n- scraper_content: Content extraction from URLs  \n- search_inventory: Product inventory search API\n\n**Health Check Commands:**\n- /health_check: Perform full system health check\n- /tool_status: Show current tool status\n- /test_tool [tool_name]: Test specific tool functionality\n- /health_report: Generate detailed health report\n\nAlways provide clear status indicators (✅ Healthy, ⚠️ Warning, ❌ Error) and actionable recommendations for any issues found.",
+    "system_prompt": "nhiệm vụ của bạn là giải thích các yêu cầu về hệ thống.",
     "tools": [
       {
         "name": "google_search",
         "type": "web_search",
         "enabled": true,
         "description": "Tìm kiếm thông tin trên web thông qua Google",
+        "curl": null,
         "input": {
           "param": {
             "query": {
@@ -29,6 +30,7 @@
             }
           }
         },
+        "header": null,
         "output": {
           "type": "object",
           "description": "Kết quả tìm kiếm từ Google",
@@ -43,9 +45,18 @@
               "type": "array",
               "description": "Danh sách kết quả tìm kiếm",
               "items": {
-                "title": {"type": "string", "description": "Tiêu đề trang web"},
-                "url": {"type": "string", "description": "Đường dẫn URL"},
-                "description": {"type": "string", "description": "Mô tả nội dung"}
+                "title": {
+                  "type": "string",
+                  "description": "Tiêu đề trang web"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Đường dẫn URL"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Mô tả nội dung"
+                }
               }
             },
             {
@@ -60,18 +71,19 @@
             }
           ]
         },
-        "dependencies": ["googlesearch-python"],
-        "category": "search"
+        "dependencies": [
+          "googlesearch-python"
+        ],
+        "category": "search",
+        "max_concurrent": null,
+        "headers": null
       },
       {
         "name": "scraper_content",
         "type": "web_search",
         "enabled": true,
         "description": "Trích xuất nội dung chính và tiêu đề từ danh sách URLs",
-        "max_concurrent": 10,
-        "headers": {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        },
+        "curl": null,
         "input": {
           "param": {
             "urls": {
@@ -85,6 +97,7 @@
             }
           }
         },
+        "header": null,
         "output": {
           "type": "object",
           "description": "Kết quả trích xuất nội dung từ URLs",
@@ -99,10 +112,22 @@
               "type": "array",
               "description": "Danh sách nội dung đã trích xuất",
               "items": {
-                "url": {"type": "string", "description": "URL đã xử lý"},
-                "title": {"type": "string", "description": "Tiêu đề trang web"},
-                "content": {"type": "string", "description": "Nội dung chính đã làm sạch"},
-                "success": {"type": "boolean", "description": "Trạng thái xử lý URL này"}
+                "url": {
+                  "type": "string",
+                  "description": "URL đã xử lý"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Tiêu đề trang web"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Nội dung chính đã làm sạch"
+                },
+                "success": {
+                  "type": "boolean",
+                  "description": "Trạng thái xử lý URL này"
+                }
               }
             },
             {
@@ -117,8 +142,15 @@
             }
           ]
         },
-        "dependencies": ["aiohttp", "trafilatura"],
-        "category": "content_extraction"
+        "dependencies": [
+          "aiohttp",
+          "trafilatura"
+        ],
+        "category": "content_extraction",
+        "max_concurrent": 10,
+        "headers": {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
       },
       {
         "name": "search_inventory",
@@ -177,16 +209,46 @@
               "type": "array",
               "description": "Danh sách sản phẩm tìm thấy",
               "items": {
-                "product_id": {"type": "string", "description": "ID duy nhất của sản phẩm"},
-                "name": {"type": "string", "description": "Tên sản phẩm"},
-                "category": {"type": "string", "description": "Danh mục sản phẩm"},
-                "price": {"type": "number", "description": "Giá sản phẩm (VND)"},
-                "currency": {"type": "string", "description": "Đơn vị tiền tệ"},
-                "stock_quantity": {"type": "number", "description": "Tổng số lượng trong kho"},
-                "available_quantity": {"type": "number", "description": "Số lượng có sẵn để bán"},
-                "warehouse_location": {"type": "string", "description": "Vị trí lưu trữ trong kho"},
-                "district": {"type": "string", "description": "Quận/huyện của kho"},
-                "warehouse_id": {"type": "string", "description": "ID của kho"}
+                "product_id": {
+                  "type": "string",
+                  "description": "ID duy nhất của sản phẩm"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Tên sản phẩm"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Danh mục sản phẩm"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Giá sản phẩm (VND)"
+                },
+                "currency": {
+                  "type": "string",
+                  "description": "Đơn vị tiền tệ"
+                },
+                "stock_quantity": {
+                  "type": "number",
+                  "description": "Tổng số lượng trong kho"
+                },
+                "available_quantity": {
+                  "type": "number",
+                  "description": "Số lượng có sẵn để bán"
+                },
+                "warehouse_location": {
+                  "type": "string",
+                  "description": "Vị trí lưu trữ trong kho"
+                },
+                "district": {
+                  "type": "string",
+                  "description": "Quận/huyện của kho"
+                },
+                "warehouse_id": {
+                  "type": "string",
+                  "description": "ID của kho"
+                }
               }
             },
             {
@@ -195,7 +257,11 @@
               "description": "Thời gian xử lý yêu cầu (ISO format)"
             }
           ]
-        }
+        },
+        "dependencies": null,
+        "category": null,
+        "max_concurrent": null,
+        "headers": null
       }
     ],
     "model": {
