@@ -1,11 +1,12 @@
-import logging
-from fastapi import APIRouter, HTTPException, Body
-from typing import Dict, Any, List
-from pydantic import BaseModel
 import datetime
-import os
+import logging
+from typing import List
+
+from fastapi import APIRouter, HTTPException, Body
+from pydantic import BaseModel
 
 from services.app_settings import config_manager
+
 # Remove the direct import - we'll get it dynamically
 # from services.advisor import agent_advisor
 
@@ -36,7 +37,7 @@ async def get_agent_status():
         agent_advisor = get_agent_advisor()
         if agent_advisor is None:
             raise HTTPException(status_code=500, detail="Agent advisor not available")
-            
+
         status = agent_advisor.get_status()
         status["config_enabled"] = config_manager.settings.agent_config.enabled
         return status
@@ -175,22 +176,33 @@ async def query_agent(request: QueryRequest = Body(...)):
     try:
         # Create a single user message from the query
         message = {"role": "user", "content": request.query}
-        
+
         agent_advisor = get_agent_advisor()
         if agent_advisor is None:
             raise HTTPException(status_code=500, detail="Agent advisor not available")
 
         # Call the agent's invoke method with the single message
         response = agent_advisor.invoke([message])
-        
-        return response
+
+        print("Raw response --> ", response)
+
+        # Extract just the AI message content for clean response
+        if 'messages' in response and len(response['messages']) > 0:
+            # Get the last AI message
+            for msg in reversed(response['messages']):
+                if hasattr(msg, 'content') and msg.__class__.__name__ == 'AIMessage':
+                    return {"response": msg.content}
+
+            raise HTTPException(status_code=500, detail="No AI response found")
+        else:
+            raise HTTPException(status_code=500, detail="Invalid response format")
+
     except Exception as e:
         logger.error(f"Error querying agent: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="An internal server error occurred while querying the agent.",
         )
-
 
 @router.get("/health_check", summary="System Health Check")
 async def agent_health_check():
@@ -322,7 +334,7 @@ async def get_health_status():
                     "dependencies": ["googlesearch-python"]
                 },
                 {
-                    "name": "scraper_content", 
+                    "name": "scraper_content",
                     "status": "enabled" if config_manager.settings.agent_config.tools[1].enabled else "disabled",
                     "dependencies": ["aiohttp", "trafilatura"]
                 },
@@ -333,7 +345,7 @@ async def get_health_status():
                 }
             ]
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting health status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
