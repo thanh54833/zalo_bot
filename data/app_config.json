@@ -182,32 +182,22 @@
             {
               "key": "success",
               "type": "boolean",
-              "description": "da"
-            },
-            {
-              "key": "message",
-              "type": "string",
-              "description": "đâsd"
+              "description": "thành công hay không ?"
             },
             {
               "key": "data.search_query.product_name",
               "type": "string",
-              "description": "đâsdaasdada"
-            },
-            {
-              "key": "data.search_query.district",
-              "type": "string",
-              "description": "đâsda"
+              "description": "đâsd"
             },
             {
               "key": "data.results_count",
               "type": "number",
-              "description": "sdasdasd"
+              "description": "đấ"
             },
             {
-              "key": "data.products[0].category",
+              "key": "data.products[0].product_id",
               "type": "string",
-              "description": "đâsda"
+              "description": "đấ"
             }
           ]
         },
