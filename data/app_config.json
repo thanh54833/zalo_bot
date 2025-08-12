@@ -180,14 +180,34 @@
           "description": "API response schema",
           "fields": [
             {
+              "key": "success",
+              "type": "boolean",
+              "description": "da"
+            },
+            {
               "key": "message",
               "type": "string",
-              "description": "message"
+              "description": "đâsd"
             },
             {
               "key": "data.search_query.product_name",
               "type": "string",
-              "description": "data.search_query.product_name"
+              "description": "đâsdaasdada"
+            },
+            {
+              "key": "data.search_query.district",
+              "type": "string",
+              "description": "đâsda"
+            },
+            {
+              "key": "data.results_count",
+              "type": "number",
+              "description": "sdasdasd"
+            },
+            {
+              "key": "data.products[0].category",
+              "type": "string",
+              "description": "đâsda"
             }
           ]
         },
