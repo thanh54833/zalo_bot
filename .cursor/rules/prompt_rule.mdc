@@ -1,0 +1,385 @@
+# Quy Tắc và Kiến Trúc System Prompt - Tài Liệu Chính Thống
+
+## I. NGUYÊN TẮC CỐT LÕI
+
+### 1. Clarity & Specificity (Rõ ràng & Cụ thể)
+- **Sử dụng ngôn ngữ đơn giản, trực tiếp**
+- **Tránh từ ngữ mơ hồ**: "có thể", "nên", "thường"
+- **Cung cấp ví dụ cụ thể** cho các yêu cầu phức tạp
+- **Định nghĩa rõ thuật ngữ** chuyên môn nếu có
+
+### 2. Structure & Organization (Cấu trúc & Tổ chức)
+- **Sắp xếp theo độ ưu tiên**: Nhiệm vụ quan trọng nhất lên đầu
+- **Sử dụng headers và bullet points** để phân chia rõ ràng
+- **Nhóm các yêu cầu liên quan** với nhau
+- **Tạo luồng logic** từ tổng quan đến chi tiết
+
+### 3. Consistency & Coherence (Nhất quán & Mạch lạc)
+- **Tránh mâu thuẫn nội bộ** giữa các quy tắc
+- **Sử dụng terminology nhất quán** xuyên suốt prompt
+- **Thiết lập hierarchy rõ ràng** cho các lệnh
+
+## II. KIẾN TRÚC SYSTEM PROMPT CHUẨN
+
+### Template Tối Ưu (7 Thành Phần):
+
+```markdown
+# IDENTITY & MISSION
+[Vai trò cụ thể + Mục tiêu chính + Expertise level]
+
+# CORE BEHAVIORS
+[Personality traits + Communication style + Decision-making approach]
+
+# OPERATIONAL RULES
+[Must/Should/May framework + Priority hierarchy]
+
+# TOOL USAGE GUIDELINES (nếu có)
+[Available tools + When to use + How to use + Error handling]
+
+# RESPONSE FRAMEWORK
+[Structure + Format + Quality standards]
+
+# BOUNDARIES & ESCALATION
+[Limitations + When to escalate + Fallback strategies]
+
+# CONTEXT AWARENESS
+[User profiling + Situation adaptation + Memory management]
+```
+
+### So Sánh với Template Cũ:
+| Cũ (5 phần) | Mới (7 phần) | Cải tiến |
+|-------------|--------------|----------|
+| VAI TRÒ & NHIỆM VỤ | IDENTITY & MISSION | Tạo nhân cách rõ nét hơn |
+| QUY TẮC CỐT LÕI | CORE BEHAVIORS | Định hình cách tương tác |
+| HƯỚNG DẪN XỬ LÝ | OPERATIONAL RULES | Must/Should/May framework |
+| ĐỊNH DẠNG PHẢN HỒI | RESPONSE FRAMEWORK | Cấu trúc conversation flow |
+| GIỚI HẠN & NGOẠI LỆ | BOUNDARIES & ESCALATION | Thêm escalation paths |
+| - | TOOL USAGE GUIDELINES | Hướng dẫn AI tools |
+| - | CONTEXT AWARENESS | Thích ứng theo tình huống |
+
+## III. QUY TẮC CHI TIẾT
+
+### A. Định Nghĩa Identity & Mission
+
+**✅ ĐÚNG:**
+```markdown
+# IDENTITY & MISSION
+Bạn là [Tên], [Chức vụ] với [X] năm kinh nghiệm trong [Lĩnh vực].
+Nhiệm vụ: [Mục tiêu cụ thể, đo lường được]
+Chuyên môn: [3-5 kỹ năng cốt lõi]
+```
+
+**❌ SAI:**
+```markdown
+Bạn là một AI hỗ trợ chuyên nghiệp.
+```
+
+### B. Thiết Lập Core Behaviors
+
+**Framework DISC:**
+- **Dominance**: Cách ra quyết định và giải quyết vấn đề
+- **Influence**: Phong cách giao tiếp và tương tác
+- **Steadiness**: Mức độ kiên nhẫn và hỗ trợ
+- **Conscientiousness**: Tiêu chuẩn chất lượng và chi tiết
+
+### C. Operational Rules - Must/Should/May
+
+**Cấu trúc chuẩn:**
+```markdown
+## BẮT BUỘC (MUST - Không thể vi phạm):
+- [Rule 1]: [Giải thích ngắn gọn]
+- [Rule 2]: [Giải thích ngắn gọn]
+
+## NÊN LÀM (SHOULD - Best practices):
+- [Practice 1]: [Lý do và lợi ích]
+- [Practice 2]: [Lý do và lợi ích]
+
+## CÓ THỂ LÀM (MAY - Optional enhancements):
+- [Option 1]: [Điều kiện áp dụng]
+- [Option 2]: [Điều kiện áp dụng]
+```
+
+### D. Tool Usage Guidelines (Cho AI Tools)
+
+**Cấu trúc tiêu chuẩn:**
+```markdown
+## [TOOL_NAME]:
+### Khi Nào Sử Dụng:
+1. [Trigger condition 1]
+2. [Trigger condition 2]
+
+### Cách Sử Dụng:
+```json
+tool_name({
+  "parameter": "value",
+  "filters": {...}
+})
+```
+
+### Chiến Lược:
+- **Broad first**: [Approach]
+- **Then narrow**: [Refinement]
+- **Error handling**: [Fallback]
+```
+
+### E. Response Framework
+
+**Conversation Architecture:**
+```markdown
+## Luồng Chuẩn:
+1. ACKNOWLEDGMENT: [Xác nhận hiểu yêu cầu]
+2. DISCOVERY: [Thu thập thông tin bổ sung]
+3. PROCESSING: [Sử dụng tools nếu cần]
+4. DELIVERY: [Trình bày kết quả có cấu trúc]
+5. CONFIRMATION: [Xác nhận sự hài lòng]
+
+## Quality Gates:
+- Accuracy: [Tiêu chuẩn chính xác]
+- Relevance: [Tiêu chuẩn phù hợp]
+- Completeness: [Tiêu chuẩn đầy đủ]
+- Clarity: [Tiêu chuẩn rõ ràng]
+```
+
+## IV. BEST PRACTICES THEO MODEL
+
+### A. Llama Models
+**Đặc điểm kỹ thuật:**
+- Prefer structured markdown format
+- Work well with few-shot examples
+- Need explicit length guidelines
+- Respond better to direct instructions
+
+**Tối ưu hóa:**
+```markdown
+# INSTRUCTION FORMAT
+- Use markdown headers for all sections
+- Provide 2-3 examples for complex concepts
+- Specify response length limits
+- Include explicit formatting requirements
+
+# OUTPUT TEMPLATE
+## [Section 1]
+[Content structure]
+
+## [Section 2]
+[Content structure]
+```
+
+### B. GPT Models
+**Đặc điểm kỹ thuật:**
+- Handle long, complex contexts well
+- Understand implicit intentions
+- Flexible with format variations
+- Good at nuanced reasoning
+
+**Tối ưu hóa:**
+```markdown
+# CONTEXTUAL INSTRUCTIONS
+You are [role] with expertise in [domain].
+Adapt your responses based on:
+- User expertise level (inferred from query complexity)
+- Communication preferences (formal/casual)
+- Desired outcome (learning/decision-making)
+
+Maintain consistency while being contextually appropriate.
+```
+
+## V. TECHNIQUES NÂNG CAO
+
+### 1. Chain-of-Thought Prompting
+```markdown
+# REASONING PROCESS
+Before responding, internally process:
+1. Problem identification and scope
+2. Relevant factors and constraints
+3. Solution generation and evaluation
+4. Risk assessment and mitigation
+5. Final recommendation with rationale
+
+Show reasoning for complex decisions.
+```
+
+### 2. Few-Shot Learning Integration
+```markdown
+# LEARNING EXAMPLES
+For [specific task], follow these patterns:
+
+**Input:** [Example input 1]
+**Process:** [Step-by-step approach]
+**Output:** [Expected result format]
+
+**Input:** [Example input 2]
+**Process:** [Step-by-step approach]
+**Output:** [Expected result format]
+```
+
+### 3. Constraint-Based Design
+```markdown
+# CONSTRAINTS
+## Hard Constraints (Cannot violate):
+- [Constraint 1]: [Consequences of violation]
+- [Constraint 2]: [Consequences of violation]
+
+## Soft Constraints (Prefer to follow):
+- [Preference 1]: [Trade-off considerations]
+- [Preference 2]: [Trade-off considerations]
+```
+
+## VI. TESTING & VALIDATION
+
+### A. Pre-Deployment Checklist
+
+**Clarity Assessment:**
+- [ ] Prompt language is unambiguous
+- [ ] Technical terms are defined
+- [ ] Examples provided for complex requirements
+- [ ] Logical flow from general to specific
+
+**Completeness Check:**
+- [ ] All major use cases covered
+- [ ] Edge cases addressed
+- [ ] Error handling specified
+- [ ] Escalation paths defined
+
+**Consistency Verification:**
+- [ ] No internal contradictions
+- [ ] Terminology used consistently
+- [ ] Priority hierarchy clear
+- [ ] Rules complement each other
+
+### B. Test Case Categories
+
+**1. Happy Path Testing:**
+- Clear, straightforward requests within scope
+- Standard use cases with complete information
+- Expected successful outcomes
+
+**2. Edge Case Testing:**
+- Ambiguous or incomplete requests
+- Boundary conditions and limits
+- Unusual but valid scenarios
+
+**3. Error Handling Testing:**
+- Invalid inputs or requests
+- Tool failures or unavailability
+- Out-of-scope requests
+
+**4. Stress Testing:**
+- Very long or complex inputs
+- Multiple simultaneous constraints
+- High-frequency interaction patterns
+
+### C. Performance Metrics
+
+**Quantitative Measures:**
+- Response accuracy rate (target: >90%)
+- Task completion rate (target: >85%)
+- Average response time
+- Tool usage success rate
+
+**Qualitative Measures:**
+- User satisfaction scores
+- Consistency in similar scenarios
+- Appropriateness of tone/style
+- Adherence to constraints
+
+## VII. COMMON PITFALLS & SOLUTIONS
+
+### 1. Over-Engineering
+**❌ Lỗi:** Prompt quá dài với quá nhiều quy tắc
+**✅ Giải pháp:** Tập trung vào 5-7 nguyên tắc cốt lõi
+
+### 2. Internal Conflicts
+**❌ Lỗi:** "Be concise" + "Provide comprehensive analysis"
+**✅ Giải pháp:** "Be concise for simple queries, comprehensive for complex analysis"
+
+### 3. Insufficient Examples
+**❌ Lỗi:** "Respond professionally"
+**✅ Giải pháp:** "Respond professionally. Example: 'Based on the data provided, I recommend...'"
+
+### 4. Missing Edge Cases
+**❌ Lỗi:** Chỉ hướng dẫn cho trường hợp lý tưởng
+**✅ Giải pháp:** Bao gồm xử lý input mơ hồ, thiếu dữ liệu, out-of-scope
+
+### 5. Tool Integration Issues
+**❌ Lỗi:** Không chỉ rõ khi nào và cách sử dụng tools
+**✅ Giải pháp:** Trigger conditions + usage patterns + error handling
+
+## VIII. MAINTENANCE & EVOLUTION
+
+### A. Monitoring Framework
+**Performance Tracking:**
+- Collect user feedback systematically
+- Monitor common failure patterns
+- Track tool usage effectiveness
+- Measure goal achievement rates
+
+**Update Triggers:**
+- Consistent pattern of user confusion
+- New use cases emerging
+- Tool capabilities changing
+- Business requirements shifting
+
+### B. Version Control Process
+```markdown
+# UPDATE PROTOCOL
+1. **Analysis Phase:** Identify specific issues/opportunities
+2. **Design Phase:** Draft targeted improvements
+3. **Testing Phase:** A/B test with control group
+4. **Rollout Phase:** Gradual deployment with monitoring
+5. **Documentation Phase:** Update guidelines and examples
+```
+
+### C. Success Metrics
+**Leading Indicators:**
+- Reduced clarification requests
+- Faster task completion
+- Higher first-response accuracy
+- Improved user engagement
+
+**Lagging Indicators:**
+- Overall user satisfaction scores
+- Task success rate improvements
+- Reduced escalation frequency
+- Business objective achievement
+
+---
+
+## IX. ARCHITECTURAL PATTERNS
+
+### Pattern 1: Single-Purpose Agent
+```markdown
+Optimal for: Specialized tasks with clear scope
+Architecture: Simple linear flow
+Complexity: Low
+Maintenance: Easy
+```
+
+### Pattern 2: Multi-Modal Agent
+```markdown
+Optimal for: Complex tasks requiring different approaches
+Architecture: Conditional branching based on input type
+Complexity: Medium
+Maintenance: Moderate
+```
+
+### Pattern 3: Conversational Agent
+```markdown
+Optimal for: Extended interactions with context building
+Architecture: State management + memory integration
+Complexity: High
+Maintenance: Complex
+```
+
+### Pattern 4: Tool-Integrated Agent
+```markdown
+Optimal for: Tasks requiring external data/services
+Architecture: Tool orchestration + error handling
+Complexity: High
+Maintenance: Complex
+```
+
+---
+
+*Phiên bản: 2025.08.12*
+*Tài liệu này cung cấp framework chuẩn cho việc thiết kế system prompt hiệu quả cho cả Llama và GPT models, đảm bảo chất lượng, nhất quán và khả năng mở rộng.*
