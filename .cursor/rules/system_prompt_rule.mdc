@@ -1,3 +1,30 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+All projects
+structure_system_prompt
+
+
+
+
+Start a chat to keep conversations organized and re-use project knowledge.
+Project knowledge
+1% of project capacity used
+
+Quy Tắc và Kiến Trúc System Prompt - Tài Liệu Chính Thống
+386 lines
+
+text
+
+
+
+Quy Tắc và Kiến Trúc System Prompt - Tài Liệu Chính Thống
+10.67 KB •386 lines
+•
+Formatting may be inconsistent from source
+
 # Quy Tắc và Kiến Trúc System Prompt - Tài Liệu Chính Thống
 
 ## I. NGUYÊN TẮC CỐT LÕI
@@ -27,7 +54,7 @@
 # IDENTITY & MISSION
 [Vai trò cụ thể + Mục tiêu chính + Expertise level]
 
-# CORE BEHAVIORS
+# CORE BEHAVIORS  
 [Personality traits + Communication style + Decision-making approach]
 
 # OPERATIONAL RULES
@@ -47,6 +74,7 @@
 ```
 
 ### So Sánh với Template Cũ:
+
 | Cũ (5 phần) | Mới (7 phần) | Cải tiến |
 |-------------|--------------|----------|
 | VAI TRÒ & NHIỆM VỤ | IDENTITY & MISSION | Tạo nhân cách rõ nét hơn |
@@ -135,7 +163,7 @@ tool_name({
 
 ## Quality Gates:
 - Accuracy: [Tiêu chuẩn chính xác]
-- Relevance: [Tiêu chuẩn phù hợp]
+- Relevance: [Tiêu chuẩn phù hợp] 
 - Completeness: [Tiêu chuẩn đầy đủ]
 - Clarity: [Tiêu chuẩn rõ ràng]
 ```
@@ -153,7 +181,7 @@ tool_name({
 ```markdown
 # INSTRUCTION FORMAT
 - Use markdown headers for all sections
-- Provide 2-3 examples for complex concepts
+- Provide 2-3 examples for complex concepts  
 - Specify response length limits
 - Include explicit formatting requirements
 
@@ -161,7 +189,7 @@ tool_name({
 ## [Section 1]
 [Content structure]
 
-## [Section 2]
+## [Section 2] 
 [Content structure]
 ```
 
@@ -191,7 +219,7 @@ Maintain consistency while being contextually appropriate.
 # REASONING PROCESS
 Before responding, internally process:
 1. Problem identification and scope
-2. Relevant factors and constraints
+2. Relevant factors and constraints  
 3. Solution generation and evaluation
 4. Risk assessment and mitigation
 5. Final recommendation with rationale
@@ -208,7 +236,7 @@ For [specific task], follow these patterns:
 **Process:** [Step-by-step approach]
 **Output:** [Expected result format]
 
-**Input:** [Example input 2]
+**Input:** [Example input 2]  
 **Process:** [Step-by-step approach]
 **Output:** [Expected result format]
 ```
@@ -243,7 +271,7 @@ For [specific task], follow these patterns:
 
 **Consistency Verification:**
 - [ ] No internal contradictions
-- [ ] Terminology used consistently
+- [ ] Terminology used consistently  
 - [ ] Priority hierarchy clear
 - [ ] Rules complement each other
 
@@ -310,7 +338,7 @@ For [specific task], follow these patterns:
 ### A. Monitoring Framework
 **Performance Tracking:**
 - Collect user feedback systematically
-- Monitor common failure patterns
+- Monitor common failure patterns  
 - Track tool usage effectiveness
 - Measure goal achievement rates
 
@@ -355,7 +383,7 @@ Complexity: Low
 Maintenance: Easy
 ```
 
-### Pattern 2: Multi-Modal Agent
+### Pattern 2: Multi-Modal Agent  
 ```markdown
 Optimal for: Complex tasks requiring different approaches
 Architecture: Conditional branching based on input type
@@ -367,7 +395,7 @@ Maintenance: Moderate
 ```markdown
 Optimal for: Extended interactions with context building
 Architecture: State management + memory integration
-Complexity: High
+Complexity: High  
 Maintenance: Complex
 ```
 
