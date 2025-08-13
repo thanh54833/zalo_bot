@@ -88,6 +88,8 @@ class ConfigManager:
         # This validates and merges data from file with defaults and env vars
         self.settings = AppSettings.model_validate(config_from_file)
 
+        print("config_manager.settings.agent_config.model.api_key -->", config_manager.settings.agent_config.model.api_key)
+
     async def save(self):
         async with self._save_lock:
             try:
