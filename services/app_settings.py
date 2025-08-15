@@ -7,6 +7,7 @@ import aiofiles
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 # --- Nested Config Models ---
 
 class ToolConfig(BaseSettings):
@@ -23,12 +24,14 @@ class ToolConfig(BaseSettings):
     max_concurrent: Optional[int] = None  # For web tools that support concurrent processing
     headers: Optional[Dict[str, str]] = None  # For web tools that need custom headers
 
+
 class ModelConfig(BaseSettings):
     provider: str = "groq"
     name: str = "llama3-8b-8192"
-    api_key: str = ""  # Should be set via env var GROQ_API_KEY or in app_config.json
+    api_key: str = ""  # Be set only in app_config.json
     temperature: float = 0.7
     max_tokens: int = 2048
+
 
 class AgentConfig(BaseSettings):
     enabled: bool = True
@@ -41,12 +44,14 @@ class ZaloOAConfig(BaseSettings):
     enabled: bool = True
     secret_key: str = ""  # Should be set in app_config.json
 
+
 class ZaloPersonalConfig(BaseSettings):
     enabled: bool = False
     phone: str = ""  # Set in app_config.json
     password: str = ""  # Set in app_config.json
     imei: str = ""  # Set in app_config.json
     cookies: Optional[Dict[str, str]] = None
+
 
 class ZaloConfig(BaseSettings):
     oa: ZaloOAConfig = Field(default_factory=ZaloOAConfig)
@@ -58,7 +63,7 @@ class ZaloConfig(BaseSettings):
 class AppSettings(BaseSettings):
     """ The main settings object, nesting all configurations """
     model_config = SettingsConfigDict(
-        env_nested_delimiter='__', # e.g., AGENT_CONFIG__MODEL__API_KEY
+        env_nested_delimiter='__',  # e.g., AGENT_CONFIG__MODEL__API_KEY
         env_file=None
     )
     agent_config: AgentConfig = Field(default_factory=AgentConfig)
@@ -85,10 +90,11 @@ class ConfigManager:
             except Exception as e:
                 print(f"[ConfigManager] Error loading config file: {e}")
 
+        print("config_from_file --> ", self._file)
         # This validates and merges data from file with defaults and env vars
         self.settings = AppSettings.model_validate(config_from_file)
 
-        print("config_manager.settings.agent_config.model.api_key -->", config_manager.settings.agent_config.model.api_key)
+        print("config_manager.settings.agent_config.model.api_key -->", self.settings.agent_config.model)
 
     async def save(self):
         async with self._save_lock:
@@ -116,12 +122,13 @@ class ConfigManager:
 
         # Merge new data into existing data
         merged_data = merge(updated_settings_data, data)
-        
+
         # Re-validate the entire structure
         self.settings = AppSettings.model_validate(merged_data)
-        
+
         # Persist the changes
         await self.save()
         return self.settings
 
-config_manager = ConfigManager() 
+
+config_manager = ConfigManager()
