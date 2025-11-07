@@ -210,7 +210,7 @@
     "model": {
       "provider": "groq",
       "name": "meta-llama/llama-4-scout-17b-16e-instruct",
-      "api_key": "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",
+      "api_key": "",
       "temperature": 0.7,
       "max_tokens": 2048
     }
